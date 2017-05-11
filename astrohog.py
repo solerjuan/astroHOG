@@ -9,6 +9,68 @@ import matplotlib.pyplot as plt
 from astropy.convolution import convolve, convolve_fft
 from astropy.convolution import Gaussian2DKernel
 
+def HOGvotes_simple(phi):
+	
+	condPara=np.logical_and(np.isfinite(phi), phi<20.*np.pi/180.).nonzero() 
+	nPara=np.size(phi[condPara])
+        nGood=np.size(phi[np.isfinite(phi).nonzero()])
+
+	sz=np.shape(phi)
+        corrframe=np.zeros(sz)
+        corrframe[condPara]=1.
+
+        hogcorr=nPara/float(nGood)
+	return hogcorr, corrframe
+
+
+def HOGvotes_blocks(phi, wd=3):
+
+	sz=np.shape(phi)
+	corrframe=np.zeros(sz)
+
+	for i in range(0, sz[0]):
+                for k in range(0, sz[1]):
+                        if (i<wd):
+                                if (k<wd):
+					temp=phi[0:i+wd,0:k+wd]; corrframe[i,k]=np.mean(temp[np.isfinite(temp).nonzero()])
+                                elif (k>sz[1]-1-wd):
+					temp=phi[0:i+wd,k-wd:sz[1]-1]; corrframe[i,k]=np.mean(temp[np.isfinite(temp).nonzero()])
+                                else:
+					temp=phi[0:i+wd,k-wd:k+wd]; corrframe[i,k]=np.mean(temp[np.isfinite(temp).nonzero()])
+                        elif (i>sz[0]-1-wd):
+                                if (k<wd):
+					temp=phi[i-wd:sz[1]-1,0:k+wd]; corrframe[i,k]=np.mean(temp[np.isfinite(temp).nonzero()])
+                                elif (k>sz[1]-1-wd):
+					temp=phi[i-wd:sz[0]-1,k-wd:sz[1]-1]; corrframe[i,k]=np.mean(temp[np.isfinite(temp).nonzero()])
+                                else:
+					temp=phi[i-wd:sz[0]-1,k-wd:k+wd]; corrframe[i,k]=np.mean(temp[np.isfinite(temp).nonzero()])
+                        elif (k<wd):
+                                if (i<wd):
+					temp=phi[0:i+wd,0:k+wd]; corrframe[i,k]=np.mean(temp[np.isfinite(temp).nonzero()])
+                                elif (i>sz[0]-1-wd):
+					temp=phi[i-wd:sz[0]-1,0:k+wd]; corrframe[i,k]=np.mean(temp[np.isfinite(temp).nonzero()])
+                                else:
+					temp=phi[i-wd:i+wd,0:k+wd]; corrframe[i,k]=np.mean(temp[np.isfinite(temp).nonzero()])	
+                        elif (k>sz[1]-1-wd):
+                                if (i<wd):
+					temp=phi[0:i+wd,k-wd:sz[1]-1]; corrframe[i,k]=np.mean(temp[np.isfinite(temp).nonzero()])
+                                elif (i>sz[0]-1-wd):
+					temp=phi[i-wd:sz[0]-1,k-wd:sz[1]-1]; corrframe[i,k]=np.mean(temp[np.isfinite(temp).nonzero()])
+                                else:
+					temp=phi[i-wd:i+wd,k-wd:sz[1]-1]; corrframe[i,k]=np.mean(temp[np.isfinite(temp).nonzero()])
+                        else:
+				temp=phi[i-wd:i+wd,k-wd:k+wd]; corrframe[i,k]=np.mean(temp[np.isfinite(temp).nonzero()])
+	
+	corrframe[np.isnan(phi).nonzero()]=0.
+
+        nPara=np.size(corrframe[(corrframe>0.).nonzero()])
+        nGood=np.size(phi[np.isfinite(phi).nonzero()])
+
+        hogcorr=nPara/float(nGood)
+
+        return hogcorr, corrframe
+
+
 def HOGcorr_frame(frame1, frame2, gradthres=0., ksz=1, mask1=0, mask2=0):
 
 	sz1=np.shape(frame1)
@@ -35,14 +97,8 @@ def HOGcorr_frame(frame1, frame2, gradthres=0., ksz=1, mask1=0, mask2=0):
 		else:	
 			phi[(mask1==0).nonzero()]=np.nan
 
-	condPara=np.logical_and(np.isfinite(phi), (180./3.14)*phi < 20.).nonzero() 
-	nPara=np.size(phi[condPara])
-	nGood=np.size(phi[np.isfinite(phi).nonzero()])
-
-	corrframe=np.zeros(sz1)
-	corrframe[condPara]=1.
-
-	hogcorr=nPara/float(nGood)
+	#hogcorr, corrframe =HOGvotes_simple(phi)
+	hogcorr, corrframe =HOGvotes_blocks(phi)
 
         return hogcorr, corrframe
 
@@ -56,7 +112,6 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, ksz=1, mask1=0, mask2
 
 	for i in range(z1min, z1max):
                 for j in range(z2min, z2max):
-				
 				if np.array_equal(np.shape(cube1), np.shape(mask1)):
 					if np.array_equal(np.shape(cube2), np.shape(mask2)):				
 						corr, corrframe=HOGcorr_frame(cube1[i,:,:], cube2[j,:,:], ksz=ksz, mask1=mask1[i,:,:], mask2=mask2[i,:,:])
