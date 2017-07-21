@@ -12,10 +12,9 @@ def HOGvotes_simple(phi, mask=0):
 
     sz=np.shape(phi)
     corrframe=np.zeros(sz)	
+
     condPara=np.logical_and(np.isfinite(phi), np.logical_or(phi < paraThres, phi > np.pi-paraThres)).nonzero() 
     corrframe[condPara]=1.
-   
-    corrframe=np.cos(phi)	 	
 
     if np.array_equal(np.shape(phi), np.shape(mask)):
         good=np.isfinite(phi).nonzero()
@@ -26,7 +25,7 @@ def HOGvotes_simple(phi, mask=0):
     #else:
 
     good=np.isfinite(phi).nonzero()	
-    angles=phi[good]	
+    angles=phi[good]
 
     #nPara=np.size(phi[condPara])
     #condGood=np.isfinite(phi).nonzero()
@@ -107,11 +106,11 @@ def HOGcorr_frame(frame1, frame2, gradthres=0., ksz=1, mask1=0, mask2=0, wd=1):
 	#cphi=(grad1[1]*grad2[1]+grad1[0]*grad2[0])
 	#sphi=(grad1[1]*grad2[0]-grad1[0]*grad2[1])
 	#phi=np.arctan2(sphi, cphi)
-	#normGrad1[bad]=1.; normGrad2[bad]=1.; 	
-	#cosphi=(grad1[1]*grad2[1]+grad1[0]*grad2[0])/(normGrad1*normGrad2)
-	phi=np.arctan2(grad1[0]*grad2[1]-grad1[1]*grad2[0], grad1[0]*grad2[0]+grad1[1]*grad2[1])
-	phi[bad]=np.nan
+	normGrad1[bad]=1.; normGrad2[bad]=1.; 	
+	cosphi=(grad1[1]*grad2[1]+grad1[0]*grad2[0])/(normGrad1*normGrad2)
+	phi=np.arccos(cosphi)
 
+	phi[bad]=np.nan
 	if np.array_equal(np.shape(frame1), np.shape(mask1)):
 		if np.array_equal(np.shape(frame2), np.shape(mask2)):		
 			phi[np.logical_or(mask1==0, mask2==0).nonzero()]=np.nan
@@ -157,9 +156,6 @@ def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., ksz=1, ma
                 hogcorr, corrframe =HOGvotes_blocks(phi, wd=wd)
         else:
                 hogcorr, corrframe =HOGvotes_simple(phi)
-	#import matplotlib.pyplot as plt
-	#plt.imshow(phi, origin='lower')
-	#plt.show()
        	#import pdb; pdb.set_trace() 
 	return hogcorr, corrframe
 

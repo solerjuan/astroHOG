@@ -6,40 +6,22 @@ import numpy as np
 from astropy.convolution import convolve_fft
 from astropy.convolution import Gaussian2DKernel
 
-def HOGvotes_simple(phi, mask=0):
+def HOGvotes_simple(phi):
 
-    paraThres=20.*np.pi/180.
+	paraThres=20.*np.pi/180.
+	
+	condPara=np.logical_and(np.isfinite(phi), np.logical_or(phi < paraThres, phi > np.pi-paraThres)).nonzero() 	
+	#condPara=np.logical_and(np.isfinite(phi), np.logical_or(phi < paraThres, phi > 180.-paraThres)).nonzero() 
+	nPara=np.size(phi[condPara])
+	condGood=np.isfinite(phi).nonzero()
+        nGood=np.size(phi[condGood])
 
-    sz=np.shape(phi)
-    corrframe=np.zeros(sz)	
-    condPara=np.logical_and(np.isfinite(phi), np.logical_or(phi < paraThres, phi > np.pi-paraThres)).nonzero() 
-    corrframe[condPara]=1.
-   
-    corrframe=np.cos(phi)	 	
+	sz=np.shape(phi)
+        corrframe=np.zeros(sz)
+        corrframe[condPara]=1.
 
-    if np.array_equal(np.shape(phi), np.shape(mask)):
-        good=np.isfinite(phi).nonzero()
-	#good=(mask > 0.).nonzero()		
-        bad= (mask == 0.).nonzero()
-        angles=phi[good]
-        corrframe[bad]=0.
-    #else:
-
-    good=np.isfinite(phi).nonzero()	
-    angles=phi[good]	
-
-    #nPara=np.size(phi[condPara])
-    #condGood=np.isfinite(phi).nonzero()
-    #nGood=np.size(phi[condGood])
-
-    #hogcorr=nPara/float(nGood)
-    zx=np.sum(np.cos(angles))/np.sqrt(np.size(angles)/2.)
-    temp=np.sum(np.cos(angles)*np.cos(angles))
-    s_zx=(2.*temp-zx*zx)/np.size(angles)
-
-    hogcorr=zx
-
-    return hogcorr, corrframe
+        hogcorr=nPara/float(nGood)
+	return hogcorr, corrframe
 
 def HOGvotes_blocks(phi, wd=3):
 
@@ -107,25 +89,25 @@ def HOGcorr_frame(frame1, frame2, gradthres=0., ksz=1, mask1=0, mask2=0, wd=1):
 	#cphi=(grad1[1]*grad2[1]+grad1[0]*grad2[0])
 	#sphi=(grad1[1]*grad2[0]-grad1[0]*grad2[1])
 	#phi=np.arctan2(sphi, cphi)
-	#normGrad1[bad]=1.; normGrad2[bad]=1.; 	
-	#cosphi=(grad1[1]*grad2[1]+grad1[0]*grad2[0])/(normGrad1*normGrad2)
-	phi=np.arctan2(grad1[0]*grad2[1]-grad1[1]*grad2[0], grad1[0]*grad2[0]+grad1[1]*grad2[1])
-	phi[bad]=np.nan
+	normGrad1[bad]=1.; normGrad2[bad]=1.; 	
+	cosphi=(grad1[1]*grad2[1]+grad1[0]*grad2[0])/(normGrad1*normGrad2)
+	phi=np.arccos(cosphi)
 
+	phi[bad]=np.nan
 	if np.array_equal(np.shape(frame1), np.shape(mask1)):
 		if np.array_equal(np.shape(frame2), np.shape(mask2)):		
 			phi[np.logical_or(mask1==0, mask2==0).nonzero()]=np.nan
 		else:	
 			phi[(mask1==0).nonzero()]=np.nan
 
-	good=(mask1 > 0.).nonzero()
 	if (wd > 1):
-		hogcorr, corrframe =HOGvotes_blocks(phi[good], mask=mask1, wd=wd)
+		hogcorr, corrframe =HOGvotes_blocks(phi, wd=wd)
 	else:
-		hogcorr, corrframe =HOGvotes_simple(phi, mask=mask1)
-	
+		hogcorr, corrframe =HOGvotes_simple(phi)
+
 	#plt.imshow(phi, origin='lower')
         #plt.show()
+	#import pdb; pdb.set_trace()
 
 	return hogcorr, corrframe
 
@@ -143,10 +125,10 @@ def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., ksz=1, ma
         bad=np.logical_or(normGrad1 <= gradthres, normVec <= vecthres).nonzero()
 
         normGrad1[bad]=1.; normVec[bad]=1.;
-        #cosphi=(grad1[1]*vecx+grad1[0]*vecy)/(normGrad1*normVec)
-	phi=np.arctan2(grad1[1]*vecy-grad1[0]*vecx, grad1[1]*vecx+grad1[0]*vecy)
+        cosphi=(grad1[1]*vecx+grad1[0]*vecy)/(normGrad1*normVec)
+        phi=np.arccos(cosphi)
+
         phi[bad]=np.nan
-	
         if np.array_equal(np.shape(frame1), np.shape(mask1)):
                 if np.array_equal(np.shape(normVec), np.shape(mask2)):
                         phi[np.logical_or(mask1==0, mask2==0).nonzero()]=np.nan
@@ -157,11 +139,8 @@ def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., ksz=1, ma
                 hogcorr, corrframe =HOGvotes_blocks(phi, wd=wd)
         else:
                 hogcorr, corrframe =HOGvotes_simple(phi)
-	#import matplotlib.pyplot as plt
-	#plt.imshow(phi, origin='lower')
-	#plt.show()
-       	#import pdb; pdb.set_trace() 
-	return hogcorr, corrframe
+
+        return hogcorr, corrframe
 
 # ================================================================================================================
 def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, ksz=1, mask1=0, mask2=0, wd=1):
@@ -185,7 +164,6 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, ksz=1, mask1=0, mask2
 					corr, corrframe=HOGcorr_frame(frame1, frame2, ksz=ksz, wd=wd)
 				corrplane[i-z1min,k-z2min]=corr
 				corrcube[i-z1min,:,:]=corrframe
-	
 	return corrplane, corrcube
 
 # ================================================================================================================
@@ -197,16 +175,13 @@ def HOGcorr_cubeandpol(cube1, ex, ey, z1min, z1max, ksz=1, mask1=0, mask2=0, wd=
 	if(rotatepol):
 		xvec= ey
 		yvec=-ex
-	else:	
-		xvec= ex
-		yvec= ey
 	normVec=np.sqrt(xvec*xvec+yvec*yvec)
 
-        corrvec=0.*np.arange(z1min,z1max+1)
+        corrvec=0.*np.arange(z1min,z1max)
 	corrframe=np.zeros([sz1[1],sz1[2]])	
         corrcube=np.zeros(sz1)
 
-        for i in range(z1min, z1max+1):
+        for i in range(z1min, z1max):
  		if np.array_equal(np.shape(cube1), np.shape(mask1)):
  			if np.array_equal(np.shape(normVec), np.shape(mask2)):                
 				corr, corrframe=HOGcorr_frameandvec(cube1[i,:,:], xvec, yvec, ksz=ksz, mask1=mask1[i,:,:], mask2=mask2[i,:,:], wd=wd)
@@ -217,5 +192,5 @@ def HOGcorr_cubeandpol(cube1, ex, ey, z1min, z1max, ksz=1, mask1=0, mask2=0, wd=
 		corrvec[i-z1min]=corr
 		corrcube[i-z1min]=corrframe
 
-        return corrvec , corrcube
+        return corrvec #, corrcube
 
