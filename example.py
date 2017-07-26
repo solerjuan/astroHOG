@@ -12,11 +12,11 @@ from astrohog import *
 
 
 
-def astroHOGexampleHIandCO(frame, vmin, vmax, ksz=1):
+def astroHOGexampleLOFAR(frame, vmin, vmax, ksz=1):
 	fstr="%4.2f" % frame
 
-	dir='/Users/jsoler/PYTHON/HItest/'
-	hdu1=fits.open(dir+'lite'+'THOR_and_VGPS_HI_without_continuum_L'+fstr+'_40arcsec.fits')
+	dir=''
+	hdu1=fits.open(dir+'3C196_LOFAR_RMcube_10.fits')
 	dir='/Users/jsoler/PYTHON/COtest/'
 	hdu2=fits.open(dir+'grs_L'+fstr+'.fits')
 
@@ -24,7 +24,7 @@ def astroHOGexampleHIandCO(frame, vmin, vmax, ksz=1):
         v1str="%4.1f" % vmin     
 	v2str="%4.1f" % vmax
 	limsv=np.array([v1, v2, v1, v2])
-
+	import pdb; pdb.set_trace()
 	CTYPE3=hdu1[0].header['CTYPE3']
 	CDELT3=hdu1[0].header['CDELT3']
 	CRVAL3=hdu1[0].header['CRVAL3']
@@ -336,8 +336,6 @@ ksz=9
 #astroHOGexampleHIandPlanck(23.75, -5., 135., ksz=9)
 #astroHOGexampleCOandPlanck(23.75,  -5., 135., ksz=9)
 #astroHOGexampleHIandCO(23.75,  -5.,  30., ksz=ksz)
-astroHOGexampleHIandCO(23.75,  30.,  65., ksz=ksz)
-astroHOGexampleHIandCO(23.75,  65., 100., ksz=ksz)
-astroHOGexampleHIandCO(23.75, 100., 135., ksz=ksz)
+astroHOGexampleLOFAR(23.75, 100., 135., ksz=ksz)
 
 

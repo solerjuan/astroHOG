@@ -13,90 +13,65 @@ from astrohog import *
 from astropy.wcs import WCS
 from reproject import reproject_interp
 
-def astroHOGexampleWHAM(frame, vmin, vmax, ksz=1):
+def astroHOGexampleLOFAR(frame, vmin, vmax, ksz=1):
 	fstr="%4.2f" % frame
 
-	dir='WHAM/'
-	hdu1=fits.open(dir+'hi_filament_cube.fits')
-	hdu2=fits.open(dir+'ha_filament_cube.fits')
+	dir='3C196/'
+	hdu1=fits.open(dir+'3C196_LOFAR_RMcube_10.fits')
+	hdu2=fits.open(dir+'3C196fwhm5_logNHmap.fits')
+	hdu3=fits.open(dir+'3C196fwhm10_Qmap.fits')
+	hdu4=fits.open(dir+'3C196fwhm10_Umap.fits')
+
+	Qmap=hdu3[0].data
+	Umap=hdu4[0].data
+	psi=0.5*np.arctan2(-Umap, Qmap)
+	ex=np.sin(psi)
+	ey=np.cos(psi)
+
+	RMcube=hdu1[0].data
 
 	v1=vmin*1000.;	v2=vmax*1000.
         v1str="%4.1f" % vmin     
 	v2str="%4.1f" % vmax
 	limsv=np.array([v1, v2, v1, v2])
 
-	cube1=hdu1[0].data
 	sz1=np.shape(hdu1[0].data)
 	CTYPE3=hdu1[0].header['CTYPE3']
 	CDELT3=hdu1[0].header['CDELT3']
 	CRVAL3=hdu1[0].header['CRVAL3']
 	CRPIX3=hdu1[0].header['CRPIX3']
-	#zmin1=0        
-	zmin1=int(CRPIX3+(v1-CRVAL3)/CDELT3)
-	#zmax1=sz1[0]-1
-	zmax1=int(CRPIX3+(v2-CRVAL3)/CDELT3)
+	zmin1=0        #int(CRPIX3+(v1-CRVAL3)/CDELT3)
+	zmax1=sz1[0]-1  #int(CRPIX3+(v2-CRVAL3)/CDELT3)
 	velvec1=hdu1[0].header['CRVAL3']+np.arange(sz1[0])*hdu1[0].header['CDELT3']   #np.arange(v1,v2,CDELT3)/1000.
-	
-	cube2=hdu2[0].data
+        
+	refhdr=hdu1[0].header.copy()
+        NAXIS3=refhdr['NAXIS3']
+	del refhdr['NAXIS3']
+        del refhdr['CTYPE3']
+	del refhdr['CRVAL3']
+	del refhdr['CRPIX3']
+	del refhdr['CDELT3']
+	del refhdr['CUNIT3']
+        refhdr['NAXIS']=2
+
 	sz2=np.shape(hdu2[0].data)
-        CTYPE3=hdu2[0].header['CTYPE3']
-        CDELT3=hdu2[0].header['CDELT3']
-        CRVAL3=hdu2[0].header['CRVAL3']
-        CRPIX3=hdu2[0].header['CRPIX3']
-        #zmin2=0
-	zmin2=int(CRPIX3+(v1-CRVAL3)/CDELT3)
-        #zmax2=sz2[0]-1  
-	zmax2=int(CRPIX3+(v2-CRVAL3)/CDELT3)
-        velvec2=hdu2[0].header['CRVAL3']+np.arange(sz2[0])*hdu2[0].header['CDELT3'] 
-	import pdb; pdb.set_trace()
-	refhdr1=hdu1[0].header.copy()
-        NAXIS31=refhdr1['NAXIS3']
-        del refhdr1['NAXIS3']
-        del refhdr1['CTYPE3']
-        del refhdr1['CRVAL3']
-        del refhdr1['CRPIX3']
-        del refhdr1['CDELT3']
-        del refhdr1['CUNIT3']
-	del refhdr1['CNAME3']
-        refhdr1['NAXIS']=2
-	refhdr1['WCSAXES']=2
+	galRMcube=np.zeros([NAXIS3, sz2[0], sz2[1]])		
 
-	refhdr2=hdu2[0].header.copy()
-        NAXIS3=refhdr2['NAXIS3']
-	del refhdr2['NAXIS3']
-        del refhdr2['CTYPE3']
-	del refhdr2['CRVAL3']
-	del refhdr2['CRPIX3']
-	del refhdr2['CDELT3']
-	del refhdr2['CUNIT3']
-	del refhdr2['CNAME3']
-	del refhdr2['PV1_3']
-        refhdr2['NAXIS']=2
-	refhdr2['WCSAXES']=2
+	for i in range(0, NAXIS3):
+		hduX=fits.PrimaryHDU(RMcube[i,:,:]); hduX.header=refhdr
+		mapX, footprintX=reproject_interp(hduX, hdu2[0].header)
 
-	newcube1=np.zeros([NAXIS31, sz2[1], sz2[2]])		
-
-	for i in range(0, NAXIS31):
-		hduX=fits.PrimaryHDU(cube1[i,:,:])
-		hduX.header=refhdr1
-		mapX, footprintX=reproject_interp(hduX, refhdr2)
-
-		newcube1[i,:,:]=mapX
-
-	#import pdb; pdb.set_trace()
+		galRMcube[i,:,:]=mapX
 
 	# ==========================================================================================================
-	sz1=np.shape(newcube1)
+	sz1=np.shape(galRMcube)
 	#x=np.sort(galRMcube.ravel())
   	#minrm=x[int(0.2*np.size(x))]
-	minrm=np.std(newcube1[0,:,:])
+	minrm=np.std(galRMcube[0,:,:])
 	mask1=np.zeros(sz1)
-	mask1[(newcube1 > minrm).nonzero()]=1
+	mask1[(galRMcube > minrm).nonzero()]=1
 
-	sz1=np.shape(cube2)
-	minrm=np.std(cube2[0,:,:])
-	mask2=np.zeros(sz2)
-	mask2[(cube2 > minrm).nonzero()]=1
+	mask2=np.zeros(sz2)+1.
 	#mask2[:,ymin:ymax,:]=1
         #mask2[(hdu2[0].data < 0.0).nonzero()]=0
 
@@ -104,21 +79,38 @@ def astroHOGexampleWHAM(frame, vmin, vmax, ksz=1):
 	#corrplane=HOGcorr_cube(hdu1[0].data, hdu2[0].data, zmin1, zmax1, zmin2, zmax2, ksz=5, mask1=mask1)
 
 	#corrplane=HOGcorr_cube(hdu1[0].data, hdu2[0].data, zmin1, zmax1, zmin2, zmax2, mask1=mask1, mask2=mask2)
-	corrplane, corrcube=HOGcorr_cube(newcube1, cube2, zmin1, zmax1, zmin2, zmax2, ksz=ksz, mask1=mask1, mask2=mask2)
+	corrplane, corrcube=HOGcorr_cube(galRMcube, np.array([hdu2[0].data]), zmin1, zmax1, 0, 0, ksz=ksz, mask1=mask1, mask2=mask2)
 	#corrplane=HOGcorr_cube(hdu1[0].data, hdu2[0].data, zmin1, zmax1, zmin2, zmax2, ksz=5, mask1=mask1, mask2=mask2, wd=3)
 	#corrplane=HOGcorr_cube(hdu1[0].data, hdu2[0].data, zmin1, zmax1, zmin2, zmax2, mask1=mask1, mask2=mask2, wd=3)
 
+	#corrplane=HOGcorr_cube(hdu1[0].data, hdu1[0].data, zmin1, zmax1, zmin1, zmax1, mask1=mask1, mask2=mask1)
+	#corrplane=HOGcorr_cube(hdu2[0].data, hdu2[0].data, zmin2, zmax2, zmin2, zmax2, mask1=mask2, mask2=mask2)
 	
+	plt.plot(velvec1, corrplane.ravel())	
+	plt.xlabel('RM')
+	plt.ylabel('Correlation')
+	plt.show()
+
+	#corrvec0, corrcube0=HOGcorr_cubeandpol(galRMcube, ex, ey, zmin1, zmax1, ksz=ksz)
+	corrvec1, corrcube1=HOGcorr_cubeandpol(galRMcube, ex, ey, zmin1, zmax1, ksz=ksz, rotatepol=True)
+
+	#plt.plot(velvec1, corrvec0, 'r')
+	plt.plot(velvec1, corrvec1, 'b')
+        plt.xlabel('RM')
+        plt.ylabel('Correlation')
+        plt.show()
+
+	import pdb; pdb.set_trace()
+
 	strksz="%i" % ksz
 
 	plt.imshow(corrplane, origin='lower', extent=limsv/1e3)
-	plt.xlabel(r'$v_{HI}$ [km/s]')
-        plt.ylabel(r'$v_{H\alpha}$ [km/s]')
+	plt.xlabel(r'$v_{CO}$ [km/s]')
+        plt.ylabel(r'$v_{HI}$ [km/s]')
         plt.yticks(rotation='vertical')
 	plt.colorbar()
-	plt.show()
-	#plt.savefig('HOGcorrelationPlanck353GRSL'+fstr+'_b'+blimstr+'_k'+strksz+'_v'+v1str+'to'+v2str+'.png', bbox_inches='tight')
-        #plt.close()
+	plt.savefig('HOGcorrelationPlanck353GRSL'+fstr+'_b'+blimstr+'_k'+strksz+'_v'+v1str+'to'+v2str+'.png', bbox_inches='tight')
+        plt.close()
         #import pdb; pdb.set_trace()
 
 def astroHOGexampleHIandPlanck(frame, vmin, vmax, ksz=1):
@@ -375,11 +367,11 @@ def astroHOGexampleCOandPlanck(frame, vmin, vmax, ksz=1):
 
 	#import pdb; pdb.set_trace()
 
-ksz=3
+ksz=9
 #astroHOGexampleHIandPlanck(23.75, -5., 135., ksz=9)
 #astroHOGexampleCOandPlanck(23.75,  -5., 135., ksz=9)
 #astroHOGexampleHIandCO(23.75,  -5.,  30., ksz=ksz)
-astroHOGexampleWHAM(23.75, 0., 5., ksz=ksz)
+astroHOGexampleLOFAR(23.75, 100., 135., ksz=ksz)
 
 
 

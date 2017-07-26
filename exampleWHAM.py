@@ -35,7 +35,8 @@ def astroHOGexampleWHAM(frame, vmin, vmax, ksz=1):
 	zmin1=int(CRPIX3+(v1-CRVAL3)/CDELT3)
 	#zmax1=sz1[0]-1
 	zmax1=int(CRPIX3+(v2-CRVAL3)/CDELT3)
-	velvec1=hdu1[0].header['CRVAL3']+np.arange(sz1[0])*hdu1[0].header['CDELT3']   #np.arange(v1,v2,CDELT3)/1000.
+	velvec1=hdu1[0].header['CRVAL3']+(np.arange(sz1[0])-hdu1[0].header['CRPIX3'])*hdu1[0].header['CDELT3']
+        #np.arange(v1,v2,CDELT3)/1000.
 	
 	cube2=hdu2[0].data
 	sz2=np.shape(hdu2[0].data)
@@ -47,8 +48,8 @@ def astroHOGexampleWHAM(frame, vmin, vmax, ksz=1):
 	zmin2=int(CRPIX3+(v1-CRVAL3)/CDELT3)
         #zmax2=sz2[0]-1  
 	zmax2=int(CRPIX3+(v2-CRVAL3)/CDELT3)
-        velvec2=hdu2[0].header['CRVAL3']+np.arange(sz2[0])*hdu2[0].header['CDELT3'] 
-	import pdb; pdb.set_trace()
+        velvec2=hdu2[0].header['CRVAL3']+(np.arange(sz2[0])-hdu2[0].header['CRPIX3'])*hdu2[0].header['CDELT3'] 
+
 	refhdr1=hdu1[0].header.copy()
         NAXIS31=refhdr1['NAXIS3']
         del refhdr1['NAXIS3']
@@ -87,27 +88,23 @@ def astroHOGexampleWHAM(frame, vmin, vmax, ksz=1):
 
 	# ==========================================================================================================
 	sz1=np.shape(newcube1)
-	#x=np.sort(galRMcube.ravel())
-  	#minrm=x[int(0.2*np.size(x))]
-	minrm=np.std(newcube1[0,:,:])
+	x=np.sort(newcube1.ravel())
+  	minrm=x[int(0.2*np.size(x))]
+	#minrm=np.std(newcube1[0,:,:])
 	mask1=np.zeros(sz1)
 	mask1[(newcube1 > minrm).nonzero()]=1
 
-	sz1=np.shape(cube2)
+	sz2=np.shape(cube2)
 	minrm=np.std(cube2[0,:,:])
 	mask2=np.zeros(sz2)
 	mask2[(cube2 > minrm).nonzero()]=1
 	#mask2[:,ymin:ymax,:]=1
         #mask2[(hdu2[0].data < 0.0).nonzero()]=0
-
-	#corrplane=HOGcorr_cube(hdu1[0].data, hdu2[0].data, zmin1, zmax1, zmin2, zmax2, ksz=5)
-	#corrplane=HOGcorr_cube(hdu1[0].data, hdu2[0].data, zmin1, zmax1, zmin2, zmax2, ksz=5, mask1=mask1)
-
+	#import pdb; pdb.set_trace()
 	#corrplane=HOGcorr_cube(hdu1[0].data, hdu2[0].data, zmin1, zmax1, zmin2, zmax2, mask1=mask1, mask2=mask2)
 	corrplane, corrcube=HOGcorr_cube(newcube1, cube2, zmin1, zmax1, zmin2, zmax2, ksz=ksz, mask1=mask1, mask2=mask2)
 	#corrplane=HOGcorr_cube(hdu1[0].data, hdu2[0].data, zmin1, zmax1, zmin2, zmax2, ksz=5, mask1=mask1, mask2=mask2, wd=3)
 	#corrplane=HOGcorr_cube(hdu1[0].data, hdu2[0].data, zmin1, zmax1, zmin2, zmax2, mask1=mask1, mask2=mask2, wd=3)
-
 	
 	strksz="%i" % ksz
 
@@ -119,7 +116,7 @@ def astroHOGexampleWHAM(frame, vmin, vmax, ksz=1):
 	plt.show()
 	#plt.savefig('HOGcorrelationPlanck353GRSL'+fstr+'_b'+blimstr+'_k'+strksz+'_v'+v1str+'to'+v2str+'.png', bbox_inches='tight')
         #plt.close()
-        #import pdb; pdb.set_trace()
+        import pdb; pdb.set_trace()
 
 def astroHOGexampleHIandPlanck(frame, vmin, vmax, ksz=1):
 	fstr="%4.2f" % frame
@@ -379,7 +376,8 @@ ksz=3
 #astroHOGexampleHIandPlanck(23.75, -5., 135., ksz=9)
 #astroHOGexampleCOandPlanck(23.75,  -5., 135., ksz=9)
 #astroHOGexampleHIandCO(23.75,  -5.,  30., ksz=ksz)
-astroHOGexampleWHAM(23.75, 0., 5., ksz=ksz)
+astroHOGexampleWHAM(23.75, -45., 45., ksz=ksz)
+
 
 
 
