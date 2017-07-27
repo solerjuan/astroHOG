@@ -50,8 +50,6 @@ def astroHOGexampleWHAM(frame, vmin, vmax, ksz=1):
 	zmax2=int(CRPIX3+(v2-CRVAL3)/CDELT3)
         velvec2=hdu2[0].header['CRVAL3']+(np.arange(sz2[0])-hdu2[0].header['CRPIX3'])*hdu2[0].header['CDELT3'] 
 
-	
-
 	refhdr1=hdu1[0].header.copy()
         NAXIS31=refhdr1['NAXIS3']
         del refhdr1['NAXIS3']
@@ -95,6 +93,8 @@ def astroHOGexampleWHAM(frame, vmin, vmax, ksz=1):
 	#minrm=np.std(newcube1[0,:,:])
 	mask1=np.zeros(sz1)
 	mask1[(newcube1 > minrm).nonzero()]=1
+	mask1[:,0:ksz,:]=0.; mask1[:,sz1[1]-ksz:sz1[1],:]=0.
+	mask1[:,:,0:ksz]=0.; mask1[:,:,sz1[2]-ksz:sz1[2]]=0.
 
 	sz2=np.shape(cube2)
 	minrm=np.std(cube2[0,:,:])
@@ -105,6 +105,7 @@ def astroHOGexampleWHAM(frame, vmin, vmax, ksz=1):
 	
 	strksz="%i" % ksz
 
+	limsv=np.array([np.min(velvec1), np.max(velvec1), np.min(velvec2), np.max(velvec2)])
 	plt.imshow(corrplane, origin='lower', extent=limsv/1e3, interpolation='none')
 	plt.xlabel(r'$v_{HI}$ [km/s]')
         plt.ylabel(r'$v_{H\alpha}$ [km/s]')
@@ -117,6 +118,14 @@ def astroHOGexampleWHAM(frame, vmin, vmax, ksz=1):
 	ix=(corrplane == np.max(corrplane)).nonzero()[0][0]		
 	jx=(corrplane == np.max(corrplane)).nonzero()[1][0] 
 
+	limsv=np.array([velvec1[ix-10], velvec1[ix+10], velvec2[jx-10], velvec2[jx+10]])
+        plt.imshow(corrplane[ix-10:ix+10,jx-10:jx+10], origin='lower', extent=limsv/1e3, interpolation='none')
+        plt.xlabel(r'$v_{HI}$ [km/s]')
+        plt.ylabel(r'$v_{H\alpha}$ [km/s]')
+        plt.yticks(rotation='vertical')
+        plt.colorbar()
+        plt.show()
+
 	ax1=plt.subplot(1,1,1, projection=WCS(refhdr2))
 	ax1.imshow(newcube1[ix,:,:], origin='lower', cmap='seismic', clim=[np.min(newcube1[ix,:,:]),4.]) #, interpolation='none')
 	ax1.imshow(cube2[jx,:,:],    origin='lower', alpha=0.55, cmap='binary', clim=[0.,1.0])  
@@ -128,10 +137,18 @@ def astroHOGexampleWHAM(frame, vmin, vmax, ksz=1):
 	ax1.set_title('DKs cubes')
 	plt.show()
 
+	ax1=plt.subplot(1,1,1, projection=WCS(refhdr2))
+        ax1.imshow(corrcube[ix,:,:], origin='lower', cmap='seismic', clim=[np.min(newcube1[ix,:,:]),4.])
+        plt.show()
+
+	corrcube[np.isnan(corrcube).nonzero()]=0.
+	ax1=plt.subplot(1,1,1, projection=WCS(refhdr2))
+	ax1.imshow(corrcube[ix-1:ix+1,:,:].sum(axis=0), origin='lower', cmap='seismic', clim=[np.min(newcube1[ix,:,:]),4.])
+	plt.show()
         import pdb; pdb.set_trace()
 
 
-ksz=3
+ksz=9
 #astroHOGexampleWHAM(23.75, -5., 5., ksz=ksz)
 astroHOGexampleWHAM(23.75, -45., 45., ksz=ksz)
 
