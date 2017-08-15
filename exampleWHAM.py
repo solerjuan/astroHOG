@@ -16,7 +16,7 @@ from reproject import reproject_interp
 def astroHOGexampleWHAM(frame, vmin, vmax, ksz=1):
 	fstr="%4.2f" % frame
 
-	dir='WHAM/'
+	dir='/Users/jsoler/DATA/WHAM/'
 	hdu1=fits.open(dir+'hi_filament_cube.fits')
 	hdu2=fits.open(dir+'ha_filament_cube.fits')
 
@@ -95,6 +95,7 @@ def astroHOGexampleWHAM(frame, vmin, vmax, ksz=1):
 	mask1[(newcube1 > minrm).nonzero()]=1
 	mask1[:,0:ksz,:]=0.; mask1[:,sz1[1]-ksz:sz1[1],:]=0.
 	mask1[:,:,0:ksz]=0.; mask1[:,:,sz1[2]-ksz:sz1[2]]=0.
+	mask1[:,sz1[1]-80:sz1[1],:]=0.;
 
 	sz2=np.shape(cube2)
 	minrm=np.std(cube2[0,:,:])
@@ -105,7 +106,7 @@ def astroHOGexampleWHAM(frame, vmin, vmax, ksz=1):
 	
 	strksz="%i" % ksz
 
-	limsv=np.array([np.min(velvec1), np.max(velvec1), np.min(velvec2), np.max(velvec2)])
+	limsv=np.array([velvec1[zmin1], velvec1[zmax1], velvec2[zmin2], velvec2[zmax2]])
 	plt.imshow(corrplane, origin='lower', extent=limsv/1e3, interpolation='none')
 	plt.xlabel(r'$v_{HI}$ [km/s]')
         plt.ylabel(r'$v_{H\alpha}$ [km/s]')
@@ -117,14 +118,16 @@ def astroHOGexampleWHAM(frame, vmin, vmax, ksz=1):
 
 	ix=(corrplane == np.max(corrplane)).nonzero()[0][0]		
 	jx=(corrplane == np.max(corrplane)).nonzero()[1][0] 
+	print(velvec1[ix]/1e3)
+	print(velvec2[jx]/1e3)
 
-	limsv=np.array([velvec1[ix-10], velvec1[ix+10], velvec2[jx-10], velvec2[jx+10]])
-        plt.imshow(corrplane[ix-10:ix+10,jx-10:jx+10], origin='lower', extent=limsv/1e3, interpolation='none')
-        plt.xlabel(r'$v_{HI}$ [km/s]')
-        plt.ylabel(r'$v_{H\alpha}$ [km/s]')
-        plt.yticks(rotation='vertical')
-        plt.colorbar()
-        plt.show()
+	#limsv=np.array([velvec1[ix-10], velvec1[ix+10], velvec2[jx-10], velvec2[jx+10]])
+        #plt.imshow(corrplane[ix-10:ix+10,jx-10:jx+10], origin='lower', extent=limsv/1e3, interpolation='none')
+        #plt.xlabel(r'$v_{HI}$ [km/s]')
+        #plt.ylabel(r'$v_{H\alpha}$ [km/s]')
+        #plt.yticks(rotation='vertical')
+        #plt.colorbar()
+        #plt.show()
 
 	ax1=plt.subplot(1,1,1, projection=WCS(refhdr2))
 	ax1.imshow(newcube1[ix,:,:], origin='lower', cmap='seismic', clim=[np.min(newcube1[ix,:,:]),4.]) #, interpolation='none')
@@ -137,20 +140,44 @@ def astroHOGexampleWHAM(frame, vmin, vmax, ksz=1):
 	ax1.set_title('DKs cubes')
 	plt.show()
 
+	inmap=newcube1[ix,:,:]
+	inmap[inmap > np.mean(inmap)]=np.mean(inmap)
+        r=(inmap-np.min(inmap))/(np.max(inmap)-np.min(inmap))
+	inmap=cube2[jx,:,:]
+	inmap[inmap > np.mean(inmap)]=np.mean(inmap)
+        g=(inmap-np.min(inmap))/(np.max(inmap)-np.min(inmap))
+
+	b=0.*g
+		
+	sz=np.shape(r)
+        rgb=np.zeros([sz[0], sz[1], 3])
+        rgb[:,:,0]=r#(1.-r)
+        rgb[:,:,1]=g#(1.-g)
+        rgb[:,:,2]=b
+
 	ax1=plt.subplot(1,1,1, projection=WCS(refhdr2))
-        ax1.imshow(corrcube[ix,:,:], origin='lower', cmap='seismic', clim=[np.min(newcube1[ix,:,:]),4.])
+	ax1.imshow(rgb, origin='lower')
+	ax1.coords['glon'].set_axislabel('Galactic Longitude')
+        ax1.coords['glat'].set_axislabel('Galactic Latitude')
+        ax1.coords['glat'].set_axislabel_position('r')
+        ax1.coords['glat'].set_ticklabel_position('r')
+        ax1.set_title('DKs cubes')
+        plt.show()
+
+	ax1=plt.subplot(1,1,1, projection=WCS(refhdr2))
+        ax1.imshow(corrcube[ix,:,:], origin='lower', cmap='Reds', clim=[np.min(newcube1[ix,:,:]),4.])
         plt.show()
 
 	corrcube[np.isnan(corrcube).nonzero()]=0.
 	ax1=plt.subplot(1,1,1, projection=WCS(refhdr2))
-	ax1.imshow(corrcube[ix-1:ix+1,:,:].sum(axis=0), origin='lower', cmap='seismic', clim=[np.min(newcube1[ix,:,:]),4.])
+	ax1.imshow(corrcube[ix-1:ix+1,:,:].sum(axis=0), origin='lower', cmap='seismic')
 	plt.show()
         import pdb; pdb.set_trace()
 
 
-ksz=9
-#astroHOGexampleWHAM(23.75, -5., 5., ksz=ksz)
-astroHOGexampleWHAM(23.75, -45., 45., ksz=ksz)
+ksz=5
+astroHOGexampleWHAM(23.75, 0., 45., ksz=ksz)
+#astroHOGexampleWHAM(23.75, -45., 45., ksz=ksz)
 
 
 
