@@ -6,38 +6,35 @@ import numpy as np
 from astropy.convolution import convolve_fft
 from astropy.convolution import Gaussian2DKernel
 
-def HOG_PRS(angles):
+# ------------------------------------------------------------------------------------------------------------------------
+def HOG_PRS(phi):
+
+   angles=2.*phi
 
    Zx=np.sum(np.cos(angles))/np.sqrt(np.size(angles)/2.)	
    temp=np.sum(np.cos(angles)*np.cos(angles))
    s_Zx=np.sqrt((2.*temp-Zx*Zx)/np.size(angles))
+   
    Zy=np.sum(np.sin(angles))/np.sqrt(np.size(angles)/2.)
+   temp=np.sum(np.sin(angles)*np.sin(angles))
+   s_Zx=np.sqrt((2.*temp-Zy*Zy)/np.size(angles))
 
-   meanPhi=0.5*np.arctan2(Zy,Zx)
+   meanPhi=0.5*np.arctan2(Zy, Zx)
 
    return Zx, s_Zx, meanPhi  
 
-
-def HOGvotes_simple(phi, mask=0):
-
-    paraThres=20.*np.pi/180.
+# ------------------------------------------------------------------------------------------------------------------------
+def HOGvotes_simple(phi):
 
     sz=np.shape(phi)
     corrframe=np.zeros(sz)	
-    condPara=np.logical_and(np.isfinite(phi), np.logical_or(phi < paraThres, phi > np.pi-paraThres)).nonzero() 
-    corrframe[condPara]=1.
-    corrframe=np.cos(phi)	 	
-
-    if np.array_equal(np.shape(phi), np.shape(mask)):
-        good=np.isfinite(phi).nonzero()
-	#good=(mask > 0.).nonzero()		
-        bad= (mask == 0.).nonzero()
-        angles=phi[good]
-        corrframe[bad]=0.
-    #else:
-
-    good=np.isfinite(phi).nonzero()	
-    Zx, s_Zx, meanPhi=HOG_PRS(phi[good])	
+    #paraThres=20.*np.pi/180.
+    #condPara=np.logical_and(np.isfinite(phi), np.logical_or(phi < paraThres, phi > np.pi-paraThres)).nonzero() 
+    #corrframe[condPara]=1.
+    corrframe=np.cos(2.*phi)	 	
+    corrframe[np.isnan(phi).nonzero()]=np.nan
+    
+    Zx, s_Zx, meanPhi = HOG_PRS(phi[np.isfinite(phi).nonzero()])	
 
     return Zx, corrframe
 
@@ -89,40 +86,38 @@ def HOGvotes_blocks(phi, wd=3):
    return hogcorr, corrframe
 
 
-def HOGcorr_frame(frame1, frame2, gradthres=0., ksz=1, mask1=0, mask2=0, wd=1):
+def HOGcorr_frame(frame1, frame2, gradthres=0., ksz=1, mask1=0, mask2=0, wd=1, allow_huge=False):
 
    sz1=np.shape(frame1)
 
    if (ksz > 1):
-      grad1=np.gradient(convolve_fft(frame1, Gaussian2DKernel(ksz)))
-      grad2=np.gradient(convolve_fft(frame2, Gaussian2DKernel(ksz)))	
+      grad1=np.gradient(convolve_fft(frame1, Gaussian2DKernel(ksz), allow_huge=allow_huge))
+      grad2=np.gradient(convolve_fft(frame2, Gaussian2DKernel(ksz), allow_huge=allow_huge))	
    else:
       grad1=np.gradient(frame1)
       grad2=np.gradient(frame2)
 
+   phi=np.arctan2(grad1[0]*grad2[1]-grad1[1]*grad2[0], grad1[0]*grad2[0]+grad1[1]*grad2[1]) 
+
+   # Excluding small gradients
    normGrad1=np.sqrt(grad1[1]**2+grad1[0]**2)
    normGrad2=np.sqrt(grad2[1]**2+grad2[0]**2)
    bad=np.logical_or(normGrad1 <= gradthres, normGrad2 <= gradthres).nonzero()
-
-   #cphi=(grad1[1]*grad2[1]+grad1[0]*grad2[0])
-   #sphi=(grad1[1]*grad2[0]-grad1[0]*grad2[1])
-   #phi=np.arctan2(sphi, cphi)
-   #normGrad1[bad]=1.; normGrad2[bad]=1.; 	
-   #cosphi=(grad1[1]*grad2[1]+grad1[0]*grad2[0])/(normGrad1*normGrad2)
-   phi=np.arctan2(grad1[0]*grad2[1]-grad1[1]*grad2[0], grad1[0]*grad2[0]+grad1[1]*grad2[1])
    phi[bad]=np.nan
 
+   # Excluding masked regions	
    if np.array_equal(np.shape(frame1), np.shape(mask1)):
       if np.array_equal(np.shape(frame2), np.shape(mask2)):		
-         phi[np.logical_or(mask1==0, mask2==0).nonzero()]=np.nan
+         phi[(mask1==0).nonzero()]=np.nan
+         phi[(mask2==0).nonzero()]=np.nan
       else:	
          phi[(mask1==0).nonzero()]=np.nan
-         good=(mask1 > 0.).nonzero()
 
+   # Evaluating the HOG correlation
    if (wd > 1):
       hogcorr, corrframe =HOGvotes_blocks(phi, mask=mask1, wd=wd)
    else:
-      hogcorr, corrframe =HOGvotes_simple(phi, mask=mask1)
+      hogcorr, corrframe =HOGvotes_simple(phi)
 	
    #plt.imshow(phi, origin='lower')
    #plt.show()
@@ -160,7 +155,7 @@ def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., ksz=1, ma
    if (wd > 1):
       hogcorr, corrframe =HOGvotes_blocks(phi, wd=wd)
    else:
-      hogcorr, corrframe =HOGvotes_simple(phi, mask=mask1)
+      hogcorr, corrframe =HOGvotes_simple(phi)
 	
    #plt.imshow(phi, origin='lower')
    #plt.show()
