@@ -104,14 +104,12 @@ def HOGcorr_frame(frame1, frame2, gradthres=0., ksz=1, mask1=0, mask2=0, wd=1, a
    normGrad2=np.sqrt(grad2[1]**2+grad2[0]**2)
    bad=np.logical_or(normGrad1 <= gradthres, normGrad2 <= gradthres).nonzero()
    phi[bad]=np.nan
-
+ 
    # Excluding masked regions	
    if np.array_equal(np.shape(frame1), np.shape(mask1)):
+      phi[(mask1==0).nonzero()]=np.nan
       if np.array_equal(np.shape(frame2), np.shape(mask2)):		
-         phi[(mask1==0).nonzero()]=np.nan
          phi[(mask2==0).nonzero()]=np.nan
-      else:	
-         phi[(mask1==0).nonzero()]=np.nan
 
    # Evaluating the HOG correlation
    if (wd > 1):
@@ -121,7 +119,7 @@ def HOGcorr_frame(frame1, frame2, gradthres=0., ksz=1, mask1=0, mask2=0, wd=1, a
 	
    #plt.imshow(phi, origin='lower')
    #plt.show()
-
+   #import pdb; pdb.set_trace() 
    return hogcorr, corrframe
 
 def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., ksz=1, mask1=0, mask2=0, wd=1):
@@ -170,8 +168,10 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, ksz=1, mask1=0, mask2
 
    corrplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
    corrcube=np.zeros(sz1)
+   corrframe_temp=np.zeros([sz1[1],sz1[2]])
 
    for i in range(z1min, z1max+1):
+      corrframe_temp*=0.
       for k in range(z2min, z2max+1):
          frame1=cube1[i,:,:]
          frame2=cube2[k,:,:]
@@ -183,8 +183,9 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, ksz=1, mask1=0, mask2
          else:
             corr, corrframe=HOGcorr_frame(frame1, frame2, ksz=ksz, wd=wd)
          corrplane[i-z1min,k-z2min]=corr
-         corrcube[i-z1min,:,:]=corrframe
-	
+         corrframe_temp+corrframe
+      corrcube[i-z1min,:,:]=corrframe/float(z2max+1-z2min)
+      #import pdb; pdb.set_trace() 	
    return corrplane, corrcube
 
 # ================================================================================================================
