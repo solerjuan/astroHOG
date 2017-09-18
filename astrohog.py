@@ -7,6 +7,8 @@ from astropy.convolution import convolve_fft
 from astropy.convolution import Gaussian2DKernel
 from congrid import *
 
+import matplotlib.pyplot as plt
+
 # ------------------------------------------------------------------------------------------------------------------------
 def HOG_PRS(phi):
    # Calculates the projected Rayleigh statistic of the distributions of angles phi.
@@ -137,8 +139,10 @@ def HOGcorr_frame(frame1, frame2, gradthres=0., pxsz=1., ksz=1., res=1., mask1=0
          intframe2=congrid(frame2, [np.int(np.round(sf*sz1[0]/pxres)), np.int(np.round(sf*sz1[1]/pxres))])
          if np.array_equal(np.shape(frame1), np.shape(mask1)): 
             intmask1=congrid(mask1, [np.int(np.round(sf*sz1[0]/pxres)), np.int(np.round(sf*sz1[1]/pxres))])
+            intmask1[(intmask1 > 0.).nonzero()]=1.  
             if np.array_equal(np.shape(frame2), np.shape(mask2)):
                intmask2=congrid(mask2, [np.int(np.round(sf*sz1[0]/pxres)), np.int(np.round(sf*sz1[1]/pxres))])
+               intmask2[(intmask2 > 0.).nonzero()]=1.
       else:		
          intframe1=frame1
          intframe2=frame2     
@@ -172,7 +176,7 @@ def HOGcorr_frame(frame1, frame2, gradthres=0., pxsz=1., ksz=1., res=1., mask1=0
    else:
       hogcorr, corrframe =HOGvotes_simple(phi)
 
-   return hogcorr, corrframe
+   return hogcorr, corrframe, intmask1
 
 
 # -------------------------------------------------------------------------------------------------------------------------------
@@ -239,8 +243,14 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=
    sz2=np.shape(cube2)
 
    corrplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
-   corrcube=np.zeros([sz1[0], np.int(np.round(sf*sz1[1]/pxres)), np.int(np.round(sf*sz1[2]/pxres))])       #np.zeros(sz1)
-   corrframe_temp=np.zeros([np.int(np.round(sf*sz1[1]/pxres)), np.int(np.round(sf*sz1[2]/pxres))]) #np.zeros([sz1[1],sz1[2]])
+   if (regrid):
+      corrcube=np.zeros([sz1[0], np.int(np.round(sf*sz1[1]/pxres)), np.int(np.round(sf*sz1[2]/pxres))])       #np.zeros(sz1)
+      corrframe_temp=np.zeros([np.int(np.round(sf*sz1[1]/pxres)), np.int(np.round(sf*sz1[2]/pxres))]) #np.zeros([sz1[1],sz1[2]])
+      maskcube=np.zeros([sz1[0], np.int(np.round(sf*sz1[1]/pxres)), np.int(np.round(sf*sz1[2]/pxres))])       #np.zeros(sz1)
+   else:
+      corrcube=np.zeros([sz1[0], sz1[1], sz1[2]])           
+      corrframe_temp=np.zeros([sz1[1],sz1[2]]) 
+      maskcube=np.zeros([sz1[0], sz1[1], sz1[2]]) 
 
    for i in range(z1min, z1max+1):
       corrframe_temp*=0.
@@ -249,16 +259,17 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=
          frame2=cube2[k,:,:]
          if np.array_equal(np.shape(cube1), np.shape(mask1)):
             if np.array_equal(np.shape(cube2), np.shape(mask2)):				
-               corr, corrframe=HOGcorr_frame(frame1, frame2, pxsz=pxsz, ksz=ksz, res=res, mask1=mask1[i,:,:], mask2=mask2[k,:,:], wd=wd, regrid=regrid)
+               corr, corrframe, mask =HOGcorr_frame(frame1, frame2, pxsz=pxsz, ksz=ksz, res=res, mask1=mask1[i,:,:], mask2=mask2[k,:,:], wd=wd, regrid=regrid)
             else:
-               corr, corrframe=HOGcorr_frame(frame1, frame2, pxsz=pxsz, ksz=ksz, res=res, mask1=mask1[i,:,:], wd=wd, regrid=regrid)
+               corr, corrframe, mask =HOGcorr_frame(frame1, frame2, pxsz=pxsz, ksz=ksz, res=res, mask1=mask1[i,:,:], wd=wd, regrid=regrid)
          else:
-            corr, corrframe=HOGcorr_frame(frame1, frame2, ksz=ksz, wd=wd)
+            corr, corrframe, mask =HOGcorr_frame(frame1, frame2, ksz=ksz, wd=wd)
          corrplane[i-z1min,k-z2min]=corr
          corrframe_temp+=corrframe
-      corrcube[i-z1min,:,:]=corrframe/float(z2max+1-z2min)
+      maskcube[i,:,:]=mask    
+      corrcube[i,:,:]=corrframe/float(z2max+1-z2min)
       #import pdb; pdb.set_trace() 	
-   return corrplane, corrcube
+   return corrplane, corrcube, maskcube
 
 
 # ================================================================================================================
