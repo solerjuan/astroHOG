@@ -46,9 +46,6 @@ def astroHOGexampleGMIMS(frame, vmin, vmax, ksz=1):
    v2str="%4.1f" % vmax
    limsv=np.array([v1, v2, v1, v2])
 
-# -------------------------------------------------------------------------------------------------------------
-# Preparing RM cube for reprojection into the same grid
-# -------------------------------------------------------------------------------------------------------------
    sz1=np.shape(hdu1[0].data)
    CTYPE3=hdu1[0].header['CTYPE3']
    CDELT3=hdu1[0].header['CDELT3']
@@ -71,30 +68,14 @@ def astroHOGexampleGMIMS(frame, vmin, vmax, ksz=1):
 # -------------------------------------------------------------------------------------------------------------
 # Reading other files
 # -------------------------------------------------------------------------------------------------------------
-   hdu2=fits.open(dir+'3C196fwhm5_logNHmap.fits')
    hdu3=fits.open(dir+'3C196fwhm30_Qmap.fits')
    hdu4=fits.open(dir+'3C196fwhm30_Umap.fits')
-   hdu5=fits.open(dir+'3C196fwhm30_LIC.fits')	
 
    Qmap=hdu3[0].data
    Umap=hdu4[0].data
-   LICmap=hdu5[0].data	
    psi=0.5*np.arctan2(-Umap, Qmap)
    ex=np.sin(psi)
    ey=np.cos(psi)
-
-   sz2=np.shape(hdu2[0].data)
-
-# ==========================================================================================================
-# Reproject
-# ==========================================================================================================
-   galRMcube=np.zeros([NAXIS3, sz2[0], sz2[1]])
-
-   for i in range(0, NAXIS3):
-      hduX=fits.PrimaryHDU(RMcube[i,:,:]); hduX.header=refhdr
-      mapX, footprintX=reproject_interp(hduX, hdu2[0].header)
-
-      galRMcube[i,:,:]=mapX
 
 # ==========================================================================================================
 # Pixel size  
@@ -102,7 +83,6 @@ def astroHOGexampleGMIMS(frame, vmin, vmax, ksz=1):
    res=40. #arcsec
    pxsz=np.abs(refhdr1['CDELT1'])*60.*60. #arcsec
    pxksz=np.int(np.round(ksz/pxsz))
-
 
 # ==========================================================================================================
 # Compute mask
@@ -136,7 +116,6 @@ def astroHOGexampleGMIMS(frame, vmin, vmax, ksz=1):
 # ==========================================================================================================
 # Compute HOG correlation between reprojected RM cube and Planck polarization
 # ==========================================================================================================
-   #corrvec0, corrcube0=HOGcorr_cubeandpol(galRMcube, ex, ey, zmin1, zmax1, ksz=ksz)
    corrvec1, corrcube1, scube1 = HOGcorr_cubeandpol(galRMcube, ex, ey, zmin1, zmax1, ksz=ksz, mask1=mask1, mask2=mask2, rotatepol=True)
 
    #plt.plot(velvec1, corrvec0, 'r')
@@ -145,18 +124,10 @@ def astroHOGexampleGMIMS(frame, vmin, vmax, ksz=1):
    plt.ylabel('PRS correlation')
    plt.show()
 
-   gradQ=np.gradient(Qmap)
-   gradU=np.gradient(Umap)
-
-   P=np.sqrt(Qmap**2+Umap**2)	   
-   gradP=np.sqrt(gradQ[0]**2+gradU[0]**2+gradQ[1]**2+gradU[1]**2)
-   gradPoverP=gradP/P
-
    imax=(corrvec1 == np.max(corrvec1)).nonzero()[0][0]
 
    ax1=plt.subplot(1,1,1, projection=WCS(hdu2[0].header))
    ax1.imshow(np.log10(galRMcube[imax,:,:]), origin='lower', cmap='rainbow') #, interpolation='none')
-   ax1.imshow(LICmap, origin='lower', alpha=0.55, cmap='binary', clim=(0.04, 0.075))
    ax1.coords.grid(color='white')
    ax1.coords['glon'].set_axislabel('Galactic Longitude')
    ax1.coords['glat'].set_axislabel('Galactic Latitude')
