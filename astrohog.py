@@ -242,6 +242,7 @@ def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., pxsz=1., 
       grad1=np.gradient(smoothframe1)
    else:
       intframe1=frame1
+      smoothframe1=frame1
       intvecx=vecx
       intvecy=vecy
       intmask1=mask1
