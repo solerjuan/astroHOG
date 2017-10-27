@@ -157,6 +157,8 @@ def HOGcorr_frame(frame1, frame2, gradthres=0., pxsz=1., ksz=1., res=1., mask1=0
       intframe2=frame2
       intmask1=mask1
       intmask2=mask2
+      smoothframe1=frame1
+      smoothframe2=frame2
       grad1=np.gradient(intframe1)
       grad2=np.gradient(intframe2)
    
