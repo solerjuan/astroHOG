@@ -153,8 +153,8 @@ def HOGcorr_frame(frame1, frame2, gradthres=0., pxsz=1., ksz=1., res=1., mask1=0
       grad1=np.gradient(smoothframe1)
       grad2=np.gradient(smoothframe2)
    else:
-      grad1=np.gradient(intframe1)
-      grad2=np.gradient(intframe2)
+      grad1=np.gradient(frame1)
+      grad2=np.gradient(frame2)
    
    # Calculation of the relative orientation angles
    tempphi=np.arctan2(grad1[0]*grad2[1]-grad1[1]*grad2[0], grad1[0]*grad2[0]+grad1[1]*grad2[1]) 
