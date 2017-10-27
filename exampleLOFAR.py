@@ -1,4 +1,4 @@
-# This file is part of AstroHOG
+#This file is part of AstroHOG
 #
 # Copyright (C) 2013-2017 Juan Diego Soler
 
@@ -121,6 +121,7 @@ def astroHOGexampleLOFAR(frame, vmin, vmax, ksz=1):
 
    strksz="%i" % ksz
 
+   #plt.figure()
    #plt.imshow(corrplane, origin='lower', extent=limsv/1e3)
    #plt.xlabel(r'$v_{CO}$ [km/s]')
    #plt.ylabel(r'$v_{HI}$ [km/s]')

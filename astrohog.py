@@ -244,6 +244,8 @@ def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., pxsz=1., 
       intframe1=frame1
       intvecx=vecx
       intvecy=vecy
+      intmask1=mask1
+      intmask2=mask2
       grad1=np.gradient(intframe1)
 
    #plt.imshow(intframe1, origin='lower')
@@ -274,13 +276,13 @@ def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., pxsz=1., 
 
    corrframe=np.cos(2.*phi)
 
-   if np.array_equal(np.shape(frame1), np.shape(mask1)):
-      corrframe[(mask1 == 0.).nonzero()]=np.nan
-      if np.array_equal(np.shape(vecx), np.shape(mask2)):
-         corrframe[(mask2 == 0.).nonzero()]=np.nan
-         good=np.logical_and(np.logical_and(np.isfinite(phi), mask1 > 0), mask2 > 0).nonzero() 
+   if np.array_equal(np.shape(intframe1), np.shape(intmask1)):
+      corrframe[(intmask1 == 0.).nonzero()]=np.nan
+      if np.array_equal(np.shape(intvecx), np.shape(intmask2)):
+         corrframe[(intmask2 == 0.).nonzero()]=np.nan
+         good=np.logical_and(np.logical_and(np.isfinite(phi), intmask1 > 0), intmask2 > 0).nonzero() 
       else:
-         good=np.logical_and(np.isfinite(phi), mask1 > 0).nonzero()
+         good=np.logical_and(np.isfinite(phi), intmask1 > 0).nonzero()
    else:
          good=np.isfinite(phi).nonzero() 
    Zx, s_Zx, meanPhi = HOG_PRS(phi[good])
