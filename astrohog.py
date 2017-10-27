@@ -302,7 +302,7 @@ def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., pxsz=1., 
 
 
 # ================================================================================================================
-def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=1., mask1=0, mask2=0, wd=1, regrid=False):
+def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=1., mask1=0, mask2=0, wd=1, regrid=False, allow_huge=False):
    # Calculates the correlation   
    #
    # INPUTS
@@ -342,11 +342,11 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=
          frame2=cube2[k,:,:]
          if np.array_equal(np.shape(cube1), np.shape(mask1)):
             if np.array_equal(np.shape(cube2), np.shape(mask2)):				
-               corr, corrframe, sframe1, sframe2 = HOGcorr_frame(frame1, frame2, pxsz=pxsz, ksz=ksz, res=res, mask1=mask1[i,:,:], mask2=mask2[k,:,:], wd=wd, regrid=regrid)
+               corr, corrframe, sframe1, sframe2 = HOGcorr_frame(frame1, frame2, pxsz=pxsz, ksz=ksz, res=res, mask1=mask1[i,:,:], mask2=mask2[k,:,:], wd=wd, regrid=regrid, allow_huge=allow_huge)
             else:
-               corr, corrframe, sframe1, sframe2 = HOGcorr_frame(frame1, frame2, pxsz=pxsz, ksz=ksz, res=res, mask1=mask1[i,:,:], wd=wd, regrid=regrid)
+               corr, corrframe, sframe1, sframe2 = HOGcorr_frame(frame1, frame2, pxsz=pxsz, ksz=ksz, res=res, mask1=mask1[i,:,:], wd=wd, regrid=regrid, allow_huge=allow_huge)
          else:
-            corr, corrframe, sframe1, sframe2 = HOGcorr_frame(frame1, frame2, ksz=ksz, wd=wd)
+            corr, corrframe, sframe1, sframe2 = HOGcorr_frame(frame1, frame2, ksz=ksz, wd=wd, allow_huge=allow_huge)
          corrplane[i-z1min,k-z2min]=corr
          corrframe_temp+=corrframe
          scube2[k,:,:]=sframe2
@@ -359,7 +359,7 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=
    return corrplane, corrcube, scube1, scube2
 
 # ================================================================================================================
-def HOGcorr_cubeandpol(cube1, ex, ey, z1min, z1max, pxsz=1., ksz=1., res=1., mask1=0, mask2=0, wd=1, rotatepol=False, regrid=False):
+def HOGcorr_cubeandpol(cube1, ex, ey, z1min, z1max, pxsz=1., ksz=1., res=1., mask1=0, mask2=0, wd=1, rotatepol=False, regrid=False, allow_huge=False):
    # Calculates the correlation   
    #
    # INPUTS
