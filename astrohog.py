@@ -312,7 +312,7 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=
    #
 
    print('Computing HOG correlation')
-   print(z1max-z1min,z2max-z2min) 
+   print(z1max-z1min+1,z2max-z2min+1) 
 
    sf=3. #Number of pixels per kernel FWHM
    pxksz =ksz/pxsz
@@ -330,12 +330,11 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=
    #   corrframe_temp=np.zeros([np.int(np.round(sf*sz1[1]/pxres)), np.int(np.round(sf*sz1[2]/pxres))]) #np.zeros([sz1[1],sz1[2]])
    #   maskcube=np.zeros([sz1[0], np.int(np.round(sf*sz1[1]/pxres)), np.int(np.round(sf*sz1[2]/pxres))])       #np.zeros(sz1)
    #else:
-   corrcube=np.zeros(sz1)           
+   corrcube=np.zeros([z1max+1-z1min, z2max+1-z2min,sz1[1],sz1[2]])           
    corrframe_temp=np.zeros([sz1[1],sz1[2]]) 
    maskcube=np.zeros(sz1) 
 
    for i in range(z1min, z1max+1):
-      corrframe_temp=np.zeros([sz1[1],sz1[2]])
       for k in range(z2min, z2max+1):
          print(i-z1min,k-z2min)
          frame1=cube1[i,:,:]
@@ -347,14 +346,13 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=
                corr, corrframe, sframe1, sframe2 = HOGcorr_frame(frame1, frame2, pxsz=pxsz, ksz=ksz, res=res, mask1=mask1[i,:,:], wd=wd, regrid=regrid, allow_huge=allow_huge)
          else:
             corr, corrframe, sframe1, sframe2 = HOGcorr_frame(frame1, frame2, ksz=ksz, wd=wd, allow_huge=allow_huge)
-         corrplane[i-z1min,k-z2min]=corr
-         corrframe_temp+=corrframe
-         scube2[k,:,:]=sframe2
-      #maskcube[i,:,:]=mask    
-      corrcube[i,:,:]=corrframe_temp/float(z2max+1-z2min)
-      scube1[i,:,:]=sframe1
 
-   #import pdb; pdb.set_trace() 
+         corrplane[i-z1min,k-z2min]=corr
+         corrcube[i-z1min,k-z2min,:,:]=corrframe
+         scube2[k,:,:]=sframe2
+
+      scube1[i,:,:]=sframe1
+      #import pdb; pdb.set_trace() 
 
    return corrplane, corrcube, scube1, scube2
 
