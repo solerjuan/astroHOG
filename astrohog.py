@@ -9,6 +9,7 @@ from congrid import *
 
 import matplotlib.pyplot as plt
 
+
 # ------------------------------------------------------------------------------------------------------------------------
 def HOG_PRS(phi):
    # Calculates the projected Rayleigh statistic of the distributions of angles phi.
@@ -20,7 +21,7 @@ def HOG_PRS(phi):
    # Zx       - value of the projected Rayleigh statistic   
    # s_Zx     - 
    # meanPhi  -
- 
+
    angles=2.*phi
 
    Zx=np.sum(np.cos(angles))/np.sqrt(np.size(angles)/2.)	
@@ -34,6 +35,7 @@ def HOG_PRS(phi):
    meanPhi=0.5*np.arctan2(Zy, Zx)
 
    return Zx, s_Zx, meanPhi  
+
 
 # -------------------------------------------------------------------------------------------------------------------------------
 def HOGvotes_simple(phi):
@@ -56,6 +58,7 @@ def HOGvotes_simple(phi):
     Zx, s_Zx, meanPhi = HOG_PRS(phi[np.isfinite(phi).nonzero()])	
 
     return Zx, corrframe
+
 
 # -------------------------------------------------------------------------------------------------------------------------------
 def HOGvotes_blocks(phi, wd=3):
@@ -115,7 +118,6 @@ def HOGvotes_blocks(phi, wd=3):
 
 # -------------------------------------------------------------------------------------------------------------------------------
 def HOGcorr_frame(frame1, frame2, gradthres=0., pxsz=1., ksz=1., res=1., mask1=0, mask2=0, wd=1, allow_huge=False, regrid=False):
-
    # Calculates the spatial correlation between frame1 and frame2 using the HOG methods
    #
    # INPUTS
@@ -200,9 +202,9 @@ def HOGcorr_frame(frame1, frame2, gradthres=0., pxsz=1., ksz=1., res=1., mask1=0
    return Zx, corrframe, smoothframe1, smoothframe2
    #return Zx, corrframe, smoothframe1
 
+
 # -------------------------------------------------------------------------------------------------------------------------------
 def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., pxsz=1., ksz=1., res=1., mask1=0, mask2=0, wd=1, allow_huge=False, regrid=False):
-
    # Calculates the spatial correlation between frame1 and the vector field described by vecx and vecy using the HOG methods
    #
    # INPUTS
@@ -356,6 +358,7 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=
 
    return corrplane, corrcube, scube1, scube2
 
+
 # ================================================================================================================
 def HOGcorr_cubeandpol(cube1, ex, ey, z1min, z1max, pxsz=1., ksz=1., res=1., mask1=0, mask2=0, wd=1, rotatepol=False, regrid=False, allow_huge=False):
    # Calculates the correlation   
@@ -403,5 +406,6 @@ def HOGcorr_cubeandpol(cube1, ex, ey, z1min, z1max, pxsz=1., ksz=1., res=1., mas
       scube[i,:,:]=sframe
 
    return corrvec, corrcube, scube
+
 
 
