@@ -26,12 +26,19 @@ def rgbcube(cube, zmin, zmax, logscale=True, minref=0., maxref=0.45, ksz=1):
    sz=np.shape(cube)
    rgb=np.zeros([sz[1],sz[2],3])
 
-   channels=zmax+1-zmin
-   pitch=int(channels/3.)
-
    cube[np.isnan(cube).nonzero()]=0.
 
-   tempmap=cube[zmin:zmin+pitch,:,:].mean(axis=0)
+   channels=zmax+1-zmin
+   indexes=np.arange(zmin,zmax)
+   #pitch=int(channels/3.)
+
+   meanI=(cube[zmin:zmax].mean(axis=2)).mean(axis=1)
+   cumsumI=np.cumsum(meanI)
+   binwd=np.max(cumsumI)/3.
+
+   firstb=np.max((cumsumI < binwd).nonzero())
+   tempmap=cube[zmin:zmin+firstb,:,:].mean(axis=0)
+   #tempmap=cube[zmin:zmin+pitch,:,:].mean(axis=0)
    if(ksz > 1):
       inmap=convolve_fft(tempmap, Gaussian2DKernel(ksz))
    else:
@@ -43,7 +50,9 @@ def rgbcube(cube, zmin, zmax, logscale=True, minref=0., maxref=0.45, ksz=1):
    inmap[(inmap > maxref).nonzero()]=maxref
    red=(inmap-np.min(inmap))/(np.max(inmap)-np.min(inmap))
 
-   tempmap=cube[zmin+pitch+1:zmin+2*pitch,:,:].mean(axis=0)
+   secondb=np.max((cumsumI < 2.*binwd).nonzero())
+   tempmap=cube[zmin+firstb+1:zmin+secondb,:,:].mean(axis=0)
+   #tempmap=cube[zmin+pitch+1:zmin+2*pitch,:,:].mean(axis=0)
    if(ksz > 1):
       inmap=convolve_fft(tempmap, Gaussian2DKernel(ksz))
    else:
@@ -55,7 +64,8 @@ def rgbcube(cube, zmin, zmax, logscale=True, minref=0., maxref=0.45, ksz=1):
    inmap[(inmap > maxref).nonzero()]=maxref
    green=(inmap-np.min(inmap))/(np.max(inmap)-np.min(inmap))
 
-   tempmap=cube[zmin+2*pitch+1:zmax,:,:].mean(axis=0)
+   tempmap=cube[zmin+secondb:zmax,:,:].mean(axis=0)
+   #tempmap=cube[zmin+2*pitch+1:zmax,:,:].mean(axis=0)
    if(ksz > 1):
       inmap=convolve_fft(tempmap, Gaussian2DKernel(ksz))
    else:
