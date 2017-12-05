@@ -21,12 +21,11 @@ from reproject import reproject_interp
 import imageio
 
 # -----------------------------------------------------------------------------------------------------------
-def rgbcube(cube, zmin, zmax, logscale=True, minref=0., maxref=0.45, ksz=1):
+def rgbcube(cube, zmin, zmax, logscale=True, minref=0., maxref=0., ksz=1):
 
    sz=np.shape(cube)
-   rgb=np.zeros([sz[1],sz[2],3])
-
    cube[np.isnan(cube).nonzero()]=0.
+   rgb=np.zeros([sz[1],sz[2],3])
 
    channels=zmax+1-zmin
    indexes=np.arange(zmin,zmax)
@@ -37,41 +36,51 @@ def rgbcube(cube, zmin, zmax, logscale=True, minref=0., maxref=0.45, ksz=1):
    binwd=np.max(cumsumI)/3.
 
    firstb=np.max((cumsumI < binwd).nonzero())
-   tempmap=cube[zmin:zmin+firstb,:,:].mean(axis=0)
+   tempmap=cube[zmin:zmin+firstb-1,:,:].mean(axis=0)
    #tempmap=cube[zmin:zmin+pitch,:,:].mean(axis=0)
-   if(ksz > 1):
-      inmap=convolve_fft(tempmap, Gaussian2DKernel(ksz))
-   else:
-      inmap=tempmap
    if(logscale):
-      inmap=np.log10(np.copy(inmap))
+      inmap=np.log10(np.copy(tempmap))
+   else:
+      if(ksz > 1):
+         inmap=convolve_fft(tempmap, Gaussian2DKernel(ksz))
+      else:
+         inmap=tempmap
+   if np.logical_and(minref==0,maxref==0):
+      minref=np.min(inmap[np.isfinite(inmap).nonzero()])
+      maxref=np.max(inmap[np.isfinite(inmap).nonzero()])
    inmap[np.isinf(inmap).nonzero()]=minref
    inmap[(inmap < minref).nonzero()]=minref
    inmap[(inmap > maxref).nonzero()]=maxref
    red=(inmap-np.min(inmap))/(np.max(inmap)-np.min(inmap))
 
    secondb=np.max((cumsumI < 2.*binwd).nonzero())
-   tempmap=cube[zmin+firstb+1:zmin+secondb,:,:].mean(axis=0)
-   #tempmap=cube[zmin+pitch+1:zmin+2*pitch,:,:].mean(axis=0)
-   if(ksz > 1):
-      inmap=convolve_fft(tempmap, Gaussian2DKernel(ksz))
-   else:
-      inmap=tempmap
+   tempmap=cube[zmin+firstb:zmin+secondb,:,:].mean(axis=0)
    if(logscale):
-      inmap=np.log10(np.copy(inmap))
+      inmap=np.log10(np.copy(tempmap))
+   else:
+      if(ksz > 1):
+         inmap=convolve_fft(tempmap, Gaussian2DKernel(ksz))
+      else:
+         inmap=tempmap
+   if np.logical_and(minref==0,maxref==0):
+      minref=np.min(inmap[np.isfinite(inmap).nonzero()])
+      maxref=np.max(inmap[np.isfinite(inmap).nonzero()])
    inmap[np.isinf(inmap).nonzero()]=minref
    inmap[(inmap < minref).nonzero()]=minref
    inmap[(inmap > maxref).nonzero()]=maxref
    green=(inmap-np.min(inmap))/(np.max(inmap)-np.min(inmap))
 
-   tempmap=cube[zmin+secondb:zmax,:,:].mean(axis=0)
-   #tempmap=cube[zmin+2*pitch+1:zmax,:,:].mean(axis=0)
-   if(ksz > 1):
-      inmap=convolve_fft(tempmap, Gaussian2DKernel(ksz))
-   else:
-      inmap=tempmap
+   tempmap=cube[zmin+secondb+1:zmax,:,:].mean(axis=0)
    if(logscale):
-      inmap=np.log10(np.copy(inmap))
+      inmap=np.log10(np.copy(tempmap))
+   else:
+      if(ksz > 1):
+         inmap=convolve_fft(tempmap, Gaussian2DKernel(ksz))
+      else:
+         inmap=tempmap
+   if np.logical_and(minref==0,maxref==0):
+      minref=np.min(inmap[np.isfinite(inmap).nonzero()])
+      maxref=np.max(inmap[np.isfinite(inmap).nonzero()])
    inmap[np.isinf(inmap).nonzero()]=minref
    inmap[(inmap < minref).nonzero()]=minref
    inmap[(inmap > maxref).nonzero()]=maxref
@@ -80,7 +89,7 @@ def rgbcube(cube, zmin, zmax, logscale=True, minref=0., maxref=0.45, ksz=1):
    rgb[:,:,0]=red
    rgb[:,:,1]=green
    rgb[:,:,2]=blue
-
+   #import pdb; pdb.set_trace()
    return rgb;
 
 # -----------------------------------------------------------------------------------------------------------
