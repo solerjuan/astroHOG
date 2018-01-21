@@ -21,23 +21,27 @@ from reproject import reproject_interp
 import imageio
 
 # -----------------------------------------------------------------------------------------------------------
-def rgbcube(cube, zmin, zmax, logscale=True, minref=0., maxref=0., ksz=1):
+def rgbcube(cube, zmin, zmax, logscale=True, minref=0., maxref=0., ksz=1, EquiBins=True):
 
    sz=np.shape(cube)
    cube[np.isnan(cube).nonzero()]=0.
    rgb=np.zeros([sz[1],sz[2],3])
 
-   channels=zmax+1-zmin
+   channels=zmax-zmin+1
    indexes=np.arange(zmin,zmax)
-   #pitch=int(channels/3.)
+   pitch=int(channels/3.)
 
    meanI=(cube[zmin:zmax].mean(axis=2)).mean(axis=1)
    cumsumI=np.cumsum(meanI)
    binwd=np.max(cumsumI)/3.
 
+   # ------------------------------------------------------------------------------------
    firstb=np.max((cumsumI < binwd).nonzero())
-   tempmap=cube[zmin:zmin+firstb-1,:,:].mean(axis=0)
-   #tempmap=cube[zmin:zmin+pitch,:,:].mean(axis=0)
+   if (EquiBins):
+      tempmap=cube[zmin:zmin+firstb-1,:,:].mean(axis=0)
+   else:
+      tempmap=cube[zmin:zmin+pitch-1,:,:].mean(axis=0)
+
    if(logscale):
       inmap=np.log10(np.copy(tempmap))
    else:
@@ -53,8 +57,13 @@ def rgbcube(cube, zmin, zmax, logscale=True, minref=0., maxref=0., ksz=1):
    inmap[(inmap > maxref).nonzero()]=maxref
    red=(inmap-np.min(inmap))/(np.max(inmap)-np.min(inmap))
 
+   # ------------------------------------------------------------------------------------
    secondb=np.max((cumsumI < 2.*binwd).nonzero())
-   tempmap=cube[zmin+firstb:zmin+secondb,:,:].mean(axis=0)
+   if (EquiBins):
+      tempmap=cube[zmin+firstb:zmin+secondb,:,:].mean(axis=0)
+   else:
+      tempmap=cube[zmin+pitch:zmin+2*pitch-1,:,:].mean(axis=0)
+
    if(logscale):
       inmap=np.log10(np.copy(tempmap))
    else:
@@ -70,7 +79,12 @@ def rgbcube(cube, zmin, zmax, logscale=True, minref=0., maxref=0., ksz=1):
    inmap[(inmap > maxref).nonzero()]=maxref
    green=(inmap-np.min(inmap))/(np.max(inmap)-np.min(inmap))
 
-   tempmap=cube[zmin+secondb+1:zmax,:,:].mean(axis=0)
+   # ------------------------------------------------------------------------------------ 
+   if (EquiBins):
+      tempmap=cube[zmin+secondb+1:zmax,:,:].mean(axis=0)
+   else:
+      tempmap=cube[zmin+2*pitch:zmax,:,:].mean(axis=0)
+
    if(logscale):
       inmap=np.log10(np.copy(tempmap))
    else:
