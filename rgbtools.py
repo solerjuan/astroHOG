@@ -20,18 +20,22 @@ from reproject import reproject_interp
 
 import imageio
 
+SMALLER_SIZE=6
+
 # -----------------------------------------------------------------------------------------------------------
-def rgbcube(cube, zmin, zmax, logscale=True, minref=0., maxref=0., ksz=1, EquiBins=True):
+def rgbcube(cube, zmin, zmax, logscale=False, minref=0., maxref=0., ksz=1, EquiBins=True):
 
    sz=np.shape(cube)
    cube[np.isnan(cube).nonzero()]=0.
+   #cube[(cube < noiselevel)]==noiselevel
+
    rgb=np.zeros([sz[1],sz[2],3])
 
    channels=zmax-zmin+1
    indexes=np.arange(zmin,zmax)
    pitch=int(channels/3.)
 
-   meanI=(cube[zmin:zmax].mean(axis=2)).mean(axis=1)
+   meanI=cube[zmin:zmax].mean(axis=(1,2))
    cumsumI=np.cumsum(meanI)
    binwd=np.max(cumsumI)/3.
 
@@ -44,14 +48,18 @@ def rgbcube(cube, zmin, zmax, logscale=True, minref=0., maxref=0., ksz=1, EquiBi
 
    if(logscale):
       inmap=np.log10(np.copy(tempmap))
+      inmap[np.isnan(inmap).nonzero()]=np.min(inmap[np.isfinite(inmap).nonzero()])
    else:
       if(ksz > 1):
          inmap=convolve_fft(tempmap, Gaussian2DKernel(ksz))
       else:
          inmap=tempmap
-   if np.logical_and(minref==0,maxref==0):
+   
+   if (minref==0.):
       minref=np.min(inmap[np.isfinite(inmap).nonzero()])
+   if (maxref==0.):
       maxref=np.max(inmap[np.isfinite(inmap).nonzero()])
+
    inmap[np.isinf(inmap).nonzero()]=minref
    inmap[(inmap < minref).nonzero()]=minref
    inmap[(inmap > maxref).nonzero()]=maxref
@@ -66,14 +74,18 @@ def rgbcube(cube, zmin, zmax, logscale=True, minref=0., maxref=0., ksz=1, EquiBi
 
    if(logscale):
       inmap=np.log10(np.copy(tempmap))
+      inmap[np.isnan(inmap).nonzero()]=np.min(inmap[np.isfinite(inmap).nonzero()])
    else:
       if(ksz > 1):
          inmap=convolve_fft(tempmap, Gaussian2DKernel(ksz))
       else:
          inmap=tempmap
-   if np.logical_and(minref==0,maxref==0):
+
+   if (minref==0.):
       minref=np.min(inmap[np.isfinite(inmap).nonzero()])
+   if (maxref==0.):
       maxref=np.max(inmap[np.isfinite(inmap).nonzero()])
+   
    inmap[np.isinf(inmap).nonzero()]=minref
    inmap[(inmap < minref).nonzero()]=minref
    inmap[(inmap > maxref).nonzero()]=maxref
@@ -87,23 +99,27 @@ def rgbcube(cube, zmin, zmax, logscale=True, minref=0., maxref=0., ksz=1, EquiBi
 
    if(logscale):
       inmap=np.log10(np.copy(tempmap))
+      inmap[np.isnan(inmap).nonzero()]=np.min(inmap[np.isfinite(inmap).nonzero()])
    else:
       if(ksz > 1):
          inmap=convolve_fft(tempmap, Gaussian2DKernel(ksz))
       else:
          inmap=tempmap
-   if np.logical_and(minref==0,maxref==0):
+
+   if (minref==0.):
       minref=np.min(inmap[np.isfinite(inmap).nonzero()])
+   if (maxref==0.):
       maxref=np.max(inmap[np.isfinite(inmap).nonzero()])
+      
    inmap[np.isinf(inmap).nonzero()]=minref
    inmap[(inmap < minref).nonzero()]=minref
-   inmap[(inmap > maxref).nonzero()]=maxref
+   inmap[(inmap > maxref).nonzero()]=maxref 
    blue=(inmap-np.min(inmap))/(np.max(inmap)-np.min(inmap))
 
    rgb[:,:,0]=red
    rgb[:,:,1]=green
    rgb[:,:,2]=blue
-   #import pdb; pdb.set_trace()
+
    return rgb;
 
 # -----------------------------------------------------------------------------------------------------------
@@ -163,9 +179,11 @@ def rgbmovie(cube, zmin, zmax, logscale=False, minref=0., maxref=0.45, ksz=1, gr
       rgb[:,:,1]=green
       rgb[:,:,2]=blue
 
+      fig = plt.figure(figsize=(1.5, 3.0), dpi=300)
+      plt.rc('font', size=SMALLER_SIZE)
       ax1=plt.subplot(1,1,1, projection=WCS(hdr))
       im=ax1.imshow(rgb, origin='lower', interpolation='none')
-      ax1.coords.grid(color='white')
+      #ax1.coords.grid(color='white')
       ax1.coords['glon'].set_axislabel('Galactic Longitude')
       ax1.coords['glat'].set_axislabel('Galactic Latitude')
       #ax1.set_title('Projected HI')
