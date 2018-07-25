@@ -369,7 +369,7 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=
    maskcube=np.zeros(sz1)
 
    for i in trange(z1min, z1max+1):
-      for k in trange(z2min, z2max+1, leave=False):
+      for k in range(z2min, z2max+1):
          frame1=cube1[i,:,:]
          frame2=cube2[k,:,:]
          if np.array_equal(np.shape(cube1), np.shape(mask1)):
