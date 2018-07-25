@@ -13,6 +13,7 @@ from nose.tools import assert_equal, assert_true
 
 import matplotlib.pyplot as plt
 
+from tqdm import trange
 
 # ------------------------------------------------------------------------------------------------------------------------
 def HOG_PRS(phi):
@@ -22,28 +23,28 @@ def HOG_PRS(phi):
    # phi      - angles between -pi/2 and pi/2
    #
    # OUTPUTS
-   # Zx       - value of the projected Rayleigh statistic   
-   # s_Zx     - 
+   # Zx       - value of the projected Rayleigh statistic
+   # s_Zx     -
    # meanPhi  -
 
    angles=2.*phi
 
-   Zx=np.sum(np.cos(angles))/np.sqrt(np.size(angles)/2.)	
+   Zx=np.sum(np.cos(angles))/np.sqrt(np.size(angles)/2.)
    temp=np.sum(np.cos(angles)*np.cos(angles))
    s_Zx=np.sqrt((2.*temp-Zx*Zx)/np.size(angles))
-   
+
    Zy=np.sum(np.sin(angles))/np.sqrt(np.size(angles)/2.)
    temp=np.sum(np.sin(angles)*np.sin(angles))
    s_Zx=np.sqrt((2.*temp-Zy*Zy)/np.size(angles))
 
    meanPhi=0.5*np.arctan2(Zy, Zx)
 
-   return Zx, s_Zx, meanPhi  
+   return Zx, s_Zx, meanPhi
 
 
 # -------------------------------------------------------------------------------------------------------------------------------
 def HOGvotes_simple(phi):
-    # Calculates the correlation   
+    # Calculates the correlation
     #
     # INPUTS
     #
@@ -52,21 +53,21 @@ def HOGvotes_simple(phi):
     #
 
     sz=np.shape(phi)
-    corrframe=np.zeros(sz)	
+    corrframe=np.zeros(sz)
     #paraThres=20.*np.pi/180.
-    #condPara=np.logical_and(np.isfinite(phi), np.logical_or(phi < paraThres, phi > np.pi-paraThres)).nonzero() 
+    #condPara=np.logical_and(np.isfinite(phi), np.logical_or(phi < paraThres, phi > np.pi-paraThres)).nonzero()
     #corrframe[condPara]=1.
-    corrframe=np.cos(phi)	 	
+    corrframe=np.cos(phi)
     corrframe[np.isnan(phi).nonzero()]=0. #np.nan
-    
-    Zx, s_Zx, meanPhi = HOG_PRS(phi[np.isfinite(phi).nonzero()])	
+
+    Zx, s_Zx, meanPhi = HOG_PRS(phi[np.isfinite(phi).nonzero()])
 
     return Zx, corrframe
 
 
 # -------------------------------------------------------------------------------------------------------------------------------
 def HOGvotes_blocks(phi, wd=3):
-    # Calculates the correlation   
+    # Calculates the correlation
     #
     # INPUTS
     #
@@ -99,7 +100,7 @@ def HOGvotes_blocks(phi, wd=3):
             elif (i>sz[0]-1-wd):
                temp=phi[i-wd:sz[0]-1,0:k+wd]; corrframe[i,k]=np.mean(temp[np.isfinite(temp).nonzero()])
             else:
-               temp=phi[i-wd:i+wd,0:k+wd]; corrframe[i,k]=np.mean(temp[np.isfinite(temp).nonzero()])	
+               temp=phi[i-wd:i+wd,0:k+wd]; corrframe[i,k]=np.mean(temp[np.isfinite(temp).nonzero()])
          elif (k>sz[1]-1-wd):
             if (i<wd):
                temp=phi[0:i+wd,k-wd:sz[1]-1]; corrframe[i,k]=np.mean(temp[np.isfinite(temp).nonzero()])
@@ -109,7 +110,7 @@ def HOGvotes_blocks(phi, wd=3):
                temp=phi[i-wd:i+wd,k-wd:sz[1]-1]; corrframe[i,k]=np.mean(temp[np.isfinite(temp).nonzero()])
          else:
             temp=phi[i-wd:i+wd,k-wd:k+wd]; corrframe[i,k]=np.mean(temp[np.isfinite(temp).nonzero()])
-	
+
    corrframe[np.isnan(phi).nonzero()]=0.
 
    nPara=np.size(corrframe[(corrframe>0.).nonzero()])
@@ -129,36 +130,36 @@ def HOGcorr_frame(frame1, frame2, gradthres1=0., gradthres2=0., pxsz=1., ksz=1.,
    # frame2 -
    #
    # OUTPUTS
-   # hogcorr -   
+   # hogcorr -
    # corrframe -
 
-   sf=3. #Number of pixels per kernel FWHM	
-     
-   pxksz =ksz/pxsz 
+   sf=3. #Number of pixels per kernel FWHM
+
+   pxksz =ksz/pxsz
    pxres =res/pxsz
 
-   sz1=np.shape(frame1)  	
+   sz1=np.shape(frame1)
 
    if (ksz > 1):
       weight=(pxsz/ksz)**2
- 
+
       if (regrid):
          intframe1=congrid(frame1, [np.int(np.round(sf*sz1[0]/pxres)), np.int(np.round(sf*sz1[1]/pxres))])
          intframe2=congrid(frame2, [np.int(np.round(sf*sz1[0]/pxres)), np.int(np.round(sf*sz1[1]/pxres))])
-         if np.array_equal(np.shape(frame1), np.shape(mask1)): 
+         if np.array_equal(np.shape(frame1), np.shape(mask1)):
             intmask1=congrid(mask1, [np.int(np.round(sf*sz1[0]/pxres)), np.int(np.round(sf*sz1[1]/pxres))])
-            intmask1[(intmask1 > 0.).nonzero()]=1.  
+            intmask1[(intmask1 > 0.).nonzero()]=1.
             if np.array_equal(np.shape(frame2), np.shape(mask2)):
                intmask2=congrid(mask2, [np.int(np.round(sf*sz1[0]/pxres)), np.int(np.round(sf*sz1[1]/pxres))])
                intmask2[(intmask2 > 0.).nonzero()]=1.
-      else:		
+      else:
          intframe1=frame1
-         intframe2=frame2     
+         intframe2=frame2
          intmask1=mask1
          intmask2=mask2
-      smoothframe1=ndimage.filters.gaussian_filter(frame1, [pxksz, pxksz], order=[0,0], mode='nearest')  
+      smoothframe1=ndimage.filters.gaussian_filter(frame1, [pxksz, pxksz], order=[0,0], mode='nearest')
       #convolve_fft(intframe1, Gaussian2DKernel(pxksz), allow_huge=allow_huge)
-      smoothframe2=ndimage.filters.gaussian_filter(frame2, [pxksz, pxksz], order=[0,0], mode='nearest') 
+      smoothframe2=ndimage.filters.gaussian_filter(frame2, [pxksz, pxksz], order=[0,0], mode='nearest')
       #convolve_fft(intframe2, Gaussian2DKernel(pxksz), allow_huge=allow_huge)
       #grad1=np.gradient(smoothframe1)
       #grad2=np.gradient(smoothframe2)
@@ -179,12 +180,12 @@ def HOGcorr_frame(frame1, frame2, gradthres1=0., gradthres2=0., pxsz=1., ksz=1.,
       #grad1=np.gradient(intframe1)
       #grad2=np.gradient(intframe2)
       dI1dx=ndimage.filters.gaussian_filter(frame1, [1, 1], order=[0,1], mode='nearest')
-      dI1dy=ndimage.filters.gaussian_filter(frame1, [1, 1], order=[1,0], mode='nearest') 
+      dI1dy=ndimage.filters.gaussian_filter(frame1, [1, 1], order=[1,0], mode='nearest')
       dI2dx=ndimage.filters.gaussian_filter(frame2, [1, 1], order=[0,1], mode='nearest')
       dI2dy=ndimage.filters.gaussian_filter(frame2, [1, 1], order=[1,0], mode='nearest')
-    
+
    # Calculation of the relative orientation angles
-   #tempphi0=np.arctan2(grad1[1]*grad2[0]-grad1[0]*grad2[1], grad1[0]*grad2[0]+grad1[1]*grad2[1]) 
+   #tempphi0=np.arctan2(grad1[1]*grad2[0]-grad1[0]*grad2[1], grad1[0]*grad2[0]+grad1[1]*grad2[1])
    tempphi=np.arctan2(dI1dx*dI2dy-dI1dy*dI2dx, dI1dx*dI2dx+dI1dy*dI2dy)
    phi=np.arctan(np.tan(tempphi))
 
@@ -193,10 +194,10 @@ def HOGcorr_frame(frame1, frame2, gradthres1=0., gradthres2=0., pxsz=1., ksz=1.,
    normGrad2=np.sqrt(dI2dx*dI2dx+dI2dy*dI2dy) #np.sqrt(grad2[1]**2+grad2[0]**2)
    bad=np.logical_or(normGrad1 <= gradthres1, normGrad2 <= gradthres2).nonzero()
    phi[bad]=np.nan
- 
+
    corrframe=phi#np.cos(2.*phi)
 
-   # Excluding masked regions	
+   # Excluding masked regions
    if np.array_equal(np.shape(intframe1), np.shape(intmask1)):
       corrframe[(intmask1 == 0.).nonzero()]=np.nan
       if np.array_equal(np.shape(intframe2), np.shape(intmask2)):
@@ -215,12 +216,12 @@ def HOGcorr_frame(frame1, frame2, gradthres1=0., gradthres2=0., pxsz=1., ksz=1.,
    can=circ.descriptive.mean(2.*phi[good], w=wghts)/2.
    pz, Z = circ.tests.rayleigh(2.*phi[good],  w=wghts)
    pv, V = circ.tests.vtest(2.*phi[good], 0., w=wghts)
- 
+
    #if (wd > 1):
    #   hogcorr, corrframe =HOGvotes_blocks(phi, wd=wd)
    #else:
    #   hogcorr, corrframe =HOGvotes_simple(phi)
-  
+
    circstats=[rvl, Z, V, pz, pv]
 
    return circstats, corrframe, smoothframe1, smoothframe2
@@ -232,19 +233,19 @@ def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., pxsz=1., 
    # Calculates the spatial correlation between frame1 and the vector field described by vecx and vecy using the HOG methods
    #
    # INPUTS
-   # frame1 - input map 
+   # frame1 - input map
    # vecx   - x-component of the input vector field
    # vecy   - y-component of the input vector field
    #
    # OUTPUTS
-   # hogcorr   -   
+   # hogcorr   -
    # corrframe -
 
-   sf=3. #Number of pixels per kernel FWHM      
+   sf=3. #Number of pixels per kernel FWHM
 
    pxksz =ksz/pxsz
    pxres =res/pxsz
-  
+
    sz1=np.shape(frame1)
 
    if (ksz > 1):
@@ -261,7 +262,7 @@ def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., pxsz=1., 
       else:
          intframe1=frame1
          intvecx=vecx
-         intvecy=vecy 
+         intvecy=vecy
          intmask1=mask1
          intmask2=mask2
       #smoothframe1=convolve_fft(intframe1, Gaussian2DKernel(pxksz), allow_huge=allow_huge)
@@ -291,7 +292,7 @@ def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., pxsz=1., 
    tempphi=np.arctan2(dI1dx*intvecy-dI1dy*intvecx, dI1dx*intvecx+dI1dy*intvecy)
    tempphi[bad]=np.nan
    phi=np.arctan(np.tan(tempphi))
-	
+
    #if np.array_equal(np.shape(frame1), np.shape(mask1)):
    #   if np.array_equal(np.shape(normVec), np.shape(mask2)):
    #      phi[np.logical_or(mask1==0, mask2==0).nonzero()]=np.nan
@@ -308,11 +309,11 @@ def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., pxsz=1., 
       corrframe[(intmask1 == 0.).nonzero()]=np.nan
       if np.array_equal(np.shape(intvecx), np.shape(intmask2)):
          corrframe[(intmask2 == 0.).nonzero()]=np.nan
-         good=np.logical_and(np.logical_and(np.isfinite(phi), intmask1 > 0), intmask2 > 0).nonzero() 
+         good=np.logical_and(np.logical_and(np.isfinite(phi), intmask1 > 0), intmask2 > 0).nonzero()
       else:
          good=np.logical_and(np.isfinite(phi), intmask1 > 0).nonzero()
    else:
-         good=np.isfinite(phi).nonzero() 
+         good=np.isfinite(phi).nonzero()
    Zx, s_Zx, meanPhi = HOG_PRS(phi[good])
 
    #if (wd > 1):
@@ -323,14 +324,14 @@ def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., pxsz=1., 
    #plt.imshow(phi, origin='lower')
    #plt.colorbar()
    #plt.show()
-   #import pdb; pdb.set_trace() 
+   #import pdb; pdb.set_trace()
 
    return Zx, corrframe, smoothframe1
 
 
 # ================================================================================================================
 def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=1., mask1=0, mask2=0, wd=1, gradthres1=0., gradthres2=0., regrid=False, allow_huge=False):
-   # Calculates the correlation   
+   # Calculates the correlation
    #
    # INPUTS
    #
@@ -339,7 +340,7 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=
    #
 
    print('Computing HOG correlation')
-   print(z1max-z1min+1,z2max-z2min+1) 
+   print(z1max-z1min+1,z2max-z2min+1)
 
    sf=3. #Number of pixels per kernel FWHM
    pxksz =ksz/pxsz
@@ -351,10 +352,10 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=
    zplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
    vplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
    pzplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
-   pvplane=np.zeros([z1max+1-z1min, z2max+1-z2min]) 
+   pvplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
 
    corrplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
-   corrframe=np.zeros([sz1[1],sz1[2]]) 
+   corrframe=np.zeros([sz1[1],sz1[2]])
    scube1=np.zeros(sz1)
    scube2=np.zeros(sz2)
 
@@ -363,17 +364,16 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=
    #   corrframe_temp=np.zeros([np.int(np.round(sf*sz1[1]/pxres)), np.int(np.round(sf*sz1[2]/pxres))]) #np.zeros([sz1[1],sz1[2]])
    #   maskcube=np.zeros([sz1[0], np.int(np.round(sf*sz1[1]/pxres)), np.int(np.round(sf*sz1[2]/pxres))])       #np.zeros(sz1)
    #else:
-   corrcube=np.zeros([z1max+1-z1min, z2max+1-z2min,sz1[1],sz1[2]])           
-   corrframe_temp=np.zeros([sz1[1],sz1[2]]) 
-   maskcube=np.zeros(sz1) 
+   corrcube=np.zeros([z1max+1-z1min, z2max+1-z2min,sz1[1],sz1[2]])
+   corrframe_temp=np.zeros([sz1[1],sz1[2]])
+   maskcube=np.zeros(sz1)
 
-   for i in range(z1min, z1max+1):
-      for k in range(z2min, z2max+1):
-         print(i-z1min,k-z2min)
+   for i in trange(z1min, z1max+1):
+      for k in trange(z2min, z2max+1, leave=False):
          frame1=cube1[i,:,:]
          frame2=cube2[k,:,:]
          if np.array_equal(np.shape(cube1), np.shape(mask1)):
-            if np.array_equal(np.shape(cube2), np.shape(mask2)):				
+            if np.array_equal(np.shape(cube2), np.shape(mask2)):
                circstats, corrframe, sframe1, sframe2 = HOGcorr_frame(frame1, frame2, pxsz=pxsz, ksz=ksz, res=res, mask1=mask1[i,:,:], mask2=mask2[k,:,:], gradthres1=gradthres1, gradthres2=gradthres2, wd=wd, regrid=regrid, allow_huge=allow_huge)
             else:
                circstats, corrframe, sframe1, sframe2 = HOGcorr_frame(frame1, frame2, pxsz=pxsz, ksz=ksz, res=res, mask1=mask1[i,:,:], gradthres1=gradthres1, gradthres2=gradthres2, wd=wd, regrid=regrid, allow_huge=allow_huge)
@@ -384,13 +384,13 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=
          zplane[i-z1min,k-z2min]=circstats[1]
          vplane[i-z1min,k-z2min]=circstats[2]
          pzplane[i-z1min,k-z2min]=circstats[3]
-         pvplane[i-z1min,k-z2min]=circstats[4]                   
+         pvplane[i-z1min,k-z2min]=circstats[4]
          corrcube[i-z1min,k-z2min,:,:]=corrframe
          scube2[k,:,:]=sframe2
 
       scube1[i,:,:]=sframe1
 
-   #import pdb; pdb.set_trace() 
+   #import pdb; pdb.set_trace()
 
    #return corrplane, corrcube, scube1, scube2
    return [rplane,zplane,vplane,pzplane,pvplane], corrcube, scube1, scube2
@@ -398,7 +398,7 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=
 
 # ================================================================================================================
 def HOGcorr_cubeandpol(cube1, ex, ey, z1min, z1max, pxsz=1., ksz=1., res=1., mask1=0, mask2=0, wd=1, rotatepol=False, regrid=False, allow_huge=False):
-   # Calculates the correlation   
+   # Calculates the correlation
    #
    # INPUTS
    #
@@ -409,7 +409,7 @@ def HOGcorr_cubeandpol(cube1, ex, ey, z1min, z1max, pxsz=1., ksz=1., res=1., mas
    print('Computing HOG correlation')
    print(z1max-z1min)
 
-   sf=3. #Number of pixels per kernel FWHM      
+   sf=3. #Number of pixels per kernel FWHM
    pxksz =ksz/pxsz
    pxres =res/pxsz
    sz1=np.shape(cube1)
@@ -418,20 +418,19 @@ def HOGcorr_cubeandpol(cube1, ex, ey, z1min, z1max, pxsz=1., ksz=1., res=1., mas
    if(rotatepol):
       xvec= ey
       yvec=-ex
-   else:	
+   else:
       xvec= ex
       yvec= ey
    normVec=np.sqrt(xvec*xvec+yvec*yvec)
 
    corrvec=0.*np.arange(z1min,z1max+1)
-   corrframe=np.zeros([sz1[1],sz1[2]])	
+   corrframe=np.zeros([sz1[1],sz1[2]])
    corrcube=np.zeros(sz1)
    scube=np.zeros(sz1)
 
-   for i in range(z1min, z1max+1):
-      print(i-z1min)
+   for i in trange(z1min, z1max+1):
       if np.array_equal(np.shape(cube1), np.shape(mask1)):
-         if np.array_equal(np.shape(normVec), np.shape(mask2)):                
+         if np.array_equal(np.shape(normVec), np.shape(mask2)):
             corr, corrframe, sframe = HOGcorr_frameandvec(cube1[i,:,:], xvec, yvec, pxsz=pxsz, ksz=ksz, res=res, mask1=mask1[i,:,:], mask2=mask2, wd=wd, regrid=regrid)
          else:
             corr, corrframe, sframe = HOGcorr_frameandvec(cube1[i,:,:], xvec, yvec, pxsz=pxsz, ksz=ksz, res=res, mask1=mask1[i,:,:], wd=wd, regrid=regrid)
