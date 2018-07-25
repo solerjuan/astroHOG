@@ -340,7 +340,7 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=
    #
 
    print('Computing HOG correlation')
-   print(z1max-z1min+1,z2max-z2min+1)
+   #print(z1max-z1min+1,z2max-z2min+1)
 
    sf=3. #Number of pixels per kernel FWHM
    pxksz =ksz/pxsz
@@ -407,7 +407,7 @@ def HOGcorr_cubeandpol(cube1, ex, ey, z1min, z1max, pxsz=1., ksz=1., res=1., mas
    #
 
    print('Computing HOG correlation')
-   print(z1max-z1min)
+   #print(z1max-z1min)
 
    sf=3. #Number of pixels per kernel FWHM
    pxksz =ksz/pxsz
