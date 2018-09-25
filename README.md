@@ -6,9 +6,8 @@ See the AstroHOG repository on GitHub for further details.
 AstroHOG
 ==================================
 
-AstroHOG is set of tools for the study o
-
-If you make use of this package in a publication, please cite our accompanying paper:
+AstroHOG is set of tools for the comparison of extended spectral-line observations (PPV cubes).
+In essence, the histrogram of oriented gradients (HOG) technique takes as input two PPV cubes and provides an estimate of their spatial correlation across velocity channels.
 
 ```
 @ARTICLE{2018arXiv180908338S,
