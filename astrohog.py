@@ -1,7 +1,12 @@
+# #!/usr/bin/env python
+#
 # This file is part of AstroHOG
 #
+# CONTACT: soler[AT]mpia.de
 # Copyright (C) 2013-2017 Juan Diego Soler
-
+#   
+#------------------------------------------------------------------------------;
+import sys
 import numpy as np
 from astropy.convolution import convolve_fft
 from astropy.convolution import Gaussian2DKernel
