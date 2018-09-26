@@ -1,20 +1,25 @@
 
 import sys
 sys.path.append('../pyastrohog/')
-from astrohog2d import *
+from astrohogppv import *
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 from astropy.io import fits
 
-hdul=fits.open('../data/image1.fits')
-image1=hdul[0].data
+hdul=fits.open('../data/ppv1.fits')
+ppvcube1=hdul[0].data
 hdul.close()
-hdul=fits.open('../data/image2.fits')
-image2=hdul[0].data
+hdul=fits.open('../data/ppv2.fits')
+ppvcube2=hdul[0].data
 hdul.close()
 
-circstats, corrframe, smoothframe1, smoothframe2 = HOGcorr_frame(image1, image2)
+sz1=np.shape(ppvcube1)
+sz2=np.shape(ppvcube2)
+
+corrplane, corrcube, scube1, scube2 =HOGcorr_cube(ppvcube1, ppvcube2, 0, sz1[0]-1, 0, sz2[0]-1, pxsz=1., ksz=3., res=2., gradthres1=0., gradthres2=0.)
+
+import pdb; pdb.set_trace()
 
 print('Mean resultant vector (r)        ', circstats[0])
 print('Rayleigh statistic (Z)           ', circstats[1])
