@@ -10,7 +10,7 @@ import sys
 import numpy as np
 from astropy.convolution import convolve_fft
 from astropy.convolution import Gaussian2DKernel
-from congrid import *
+#from congrid import *
 from scipy import ndimage
 
 import pycircstat as circ
@@ -265,7 +265,7 @@ def HOGcorr_frame(frame1, frame2, gradthres1=0., gradthres2=0., pxsz=1., ksz=1.,
    #   hogcorr, corrframe =HOGvotes_simple(phi)
   
    circstats=[rvl, Z, V, pz, pv, myV, s_myV, meanphi, am]
-
+   #import pdb; pdb.set_trace()
    return circstats, corrframe, smoothframe1, smoothframe2
    #return Zx, corrframe, smoothframe1
 
