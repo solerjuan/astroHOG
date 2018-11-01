@@ -1,53 +1,90 @@
+# This is an example of the comparison of data cubes using the HOG technique
+#
+# Prepared by Juan D. Soler (soler@mpia.de)
 
 import sys
-sys.path.append('../pyastrohog/')
-from astrohogppv import *
+sys.path.append('../')
+from astrohog import *
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 from astropy.io import fits
 
-hdul=fits.open('../data/ppv1.fits')
-ppvcube1=hdul[0].data
+from scipy import ndimage
+
+# Load the cubes that you plan to compare
+# Just for reference, I assume that the first index runs over the non-spatial coordinate
+# Also assume that the cubes are spatially aligned and are reprojected into the same grid 
+
+hdul = fits.open('../data/testcube1.fits')
+cube1=hdul[0].data
 hdul.close()
-hdul=fits.open('../data/ppv2.fits')
-ppvcube2=hdul[0].data
+hdul = fits.open('../data/testcube2.fits')
+cube2=hdul[0].data
 hdul.close()
 
-sz1=np.shape(ppvcube1)
-sz2=np.shape(ppvcube2)
+# Here you select the size of your derivative kernel in pixels
+ksz=10
 
-corrplane, corrcube, scube1, scube2 =HOGcorr_cube(ppvcube1, ppvcube2, 0, sz1[0]-1, 0, sz2[0]-1, pxsz=1., ksz=3., res=2., gradthres1=0., gradthres2=0.)
+# Here I define the masks for both cubes
+# For the sake of simplicity, I'm only masking the edges of the cubes
+sz1=np.shape(cube1)
+mask1=1.+0.*cube1
+mask1[:,0:ksz,:]=0.
+mask1[:,sz1[1]-1-ksz:sz1[1]-1,:]=0.
+mask1[:,:,0:ksz]=0.
+mask1[:,:,sz1[2]-1-ksz:sz1[2]-1]=0.
+sz2=np.shape(cube2)
+mask2=1.+0.*cube2
+mask2[:,0:ksz,:]=0.
+mask2[:,sz2[1]-1-ksz:sz2[1]-1,:]=0.
+mask2[:,:,0:ksz]=0.
+mask2[:,:,sz2[2]-1-ksz:sz2[2]-1]=0.
 
-import pdb; pdb.set_trace()
+# Here you define the channel ranges over which you want to compare the cubes
+zmin1=0
+zmax1=sz1[0]-1
+zmin2=0
+zmax2=sz2[0]-1
 
-print('Mean resultant vector (r)        ', circstats[0])
-print('Rayleigh statistic (Z)           ', circstats[1])
-print('Projected Rayleigh statistic (V) ', circstats[2])
-print('Rayleigh statistic (ii)          ', circstats[5], '+/-', circstats[6])
-print('Mean angle                       ', circstats[7])
-print('Alignment measure (AM)           ', circstats[8])
+# Run the HOG
+corrplane, corrcube, scube1, scube2 =HOGcorr_cube(cube1, cube2, zmin1, zmax1, zmin2, zmax2, ksz=ksz, mask1=mask1, mask2=mask2)
 
-hist, bin_edges = np.histogram(corrframe*180.0/np.pi, density=True, range=[-90.,90.], bins=40)
-bin_center=0.5*(bin_edges[0:np.size(bin_edges)-1]+bin_edges[1:np.size(bin_edges)])
+# The outputs are: 
+# 1. 'corrplane' an array with all of the metrics to evaluate the correlation between the cubes
+np.shape(corrplane)
 
-fig=plt.figure()
-ax1=plt.subplot(221)
-plt.imshow(image1, cmap='bone', origin='lower')
-ax1=plt.subplot(222)
-plt.imshow(image2, cmap='copper', origin='lower')
-ax1=plt.subplot(223)
-im=plt.imshow(np.abs(corrframe)*180.0/np.pi, cmap='spring', origin='lower')
-cb1=plt.colorbar(im) #,fraction=0.046, pad=0.04)
-cb1.set_label(r'$|\phi|$ [deg]')
-ax1=plt.subplot(224)
-plt.step(bin_center, hist*100, color='red')
-plt.ylabel('Histogram density [%]')
-plt.xlabel(r'$\phi$ [deg]')
-plt.xticks([-90.,-45.,0.,45.,90.])
-plt.tight_layout()
+# 2. 'corrcube', which is the array containing all the relative orientation angles between gradients
+np.shape(corrcube)
+
+# Here for example, we show the projected Rayleight statistic (V)
+# Large V values indicate that the angle distribution is not flat and is centred on zero
+# V values around zero correspond to a flat angle distribution.
+vplane =corrplane[2]
+
+fig, ax = plt.subplots(1,1, figsize=(8., 6.))
+im=plt.imshow(vplane,origin='lower',clim=[0.,np.max(vplane)],interpolation='None')
+plt.xlabel('Channel in cube 2')
+plt.ylabel('Channel in cube 1')
+cbl=plt.colorbar(im)
+cbl.ax.set_title(r'$V$')
 plt.show()
 
-#import pdb; pdb.set_trace()
+# Plot the pair of channels with the highest spatial correlations
+indmax1, indmax2 =(vplane == np.max(vplane[np.isfinite(vplane)])).nonzero()
 
+fig, ax = plt.subplots(1,2, figsize=(16., 12.))
+ax[0].imshow(cube1[indmax1[0],:,:], origin='lower', cmap='Greys_r')
+ax[0].set_title('Image 1')
+ax[1].imshow(cube2[indmax2[0],:,:], origin='lower', cmap='Greys_r')
+ax[1].set_title('Image 2')
+plt.show()
+
+#
+fig, ax = plt.subplots(1,1, figsize=(8., 6.))
+im=plt.imshow(np.abs(corrcube[indmax1[0],indmax2[0],:,:])*180.0/np.pi, origin='lower', cmap='spring',interpolation='None')
+cbl=plt.colorbar(im,fraction=0.046, pad=0.04)
+cbl.ax.set_title(r'$|\phi|$ [deg]')
+ax.set_title('Relative orientation between gradient vectors')
+plt.show()
 
