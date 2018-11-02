@@ -6,7 +6,6 @@ import sys
 sys.path.append('../')
 from astrohog import *
 
-import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 from astropy.io import fits
 
