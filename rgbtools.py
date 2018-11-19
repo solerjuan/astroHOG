@@ -9,7 +9,7 @@ import matplotlib
 #matplotlib.use('Agg') # Must be before importing matplotlib.pyplot or pylab!
 import matplotlib.pyplot as plt
 
-sys.path.append('/disk2/soler/PYTHON/astroHOG/')
+#sys.path.append('/disk2/soler/PYTHON/astroHOG/')
 from astrohog import *
 
 from astropy.convolution import convolve_fft
@@ -21,6 +21,56 @@ from reproject import reproject_interp
 import imageio
 
 SMALLER_SIZE=6
+
+from matplotlib.colors import LinearSegmentedColormap
+
+cdict1 = {'red':   ((0.00, 0.0, 0.0),
+                    (0.01, 0.0, 0.0),
+                    (0.02, 0.0, 0.0),
+                    (0.03, 0.0, 0.0),
+                    (0.04, 0.0, 0.0),
+                    (1.0, 1.0, 1.0)),
+
+         'green':  ((0.0, 0.0, 0.0),
+                    (1.0, 0.0, 0.0)),
+
+         'blue':   ((0.0, 0.0, 0.0),
+                    (1.0, 0.0, 0.0))
+        }
+
+COcolort=LinearSegmentedColormap('COcmap', cdict1)
+plt.register_cmap(cmap=COcolort)
+
+cdict2 = {'red':   ((0.0, 0.0, 0.0),
+                    (1.0, 0.0, 0.0)),
+
+         'green':  ((0.0, 0.00, 0.0),
+                    (0.0, 0.01, 0.0),
+                    (0.0, 0.02, 0.0),
+                    (0.0, 0.03, 0.0),
+                    (0.0, 0.04, 0.0),
+                    (1.0, 1.00, 1.0)),
+
+         'blue':   ((0.0, 0.00, 0.0),
+                    (0.0, 0.01, 0.0),
+                    (0.0, 0.02, 0.0),
+                    (0.0, 0.03, 0.0),
+                    (0.0, 0.04, 0.0),
+                    (1.0, 1.00, 1.0))
+        }
+
+HIcolort=LinearSegmentedColormap('COcmap', cdict2)
+plt.register_cmap(cmap=HIcolort)
+
+# -----------------------------------------------------------------------------------------------------------
+def tealct():
+   
+   return HIcolort
+
+# -----------------------------------------------------------------------------------------------------------
+def redct():
+   
+   return COcolort
 
 # -----------------------------------------------------------------------------------------------------------
 def rgbcube(cube, zmin, zmax, logscale=False, minref=0., maxref=0., ksz=1, EquiBins=True):
@@ -181,12 +231,16 @@ def rgbmovie(cube, zmin, zmax, logscale=False, minref=0., maxref=0.45, ksz=1, gr
 
       fig = plt.figure(figsize=(1.5, 3.0), dpi=300)
       plt.rc('font', size=SMALLER_SIZE)
-      ax1=plt.subplot(1,1,1, projection=WCS(hdr))
-      im=ax1.imshow(rgb, origin='lower', interpolation='none')
-      #ax1.coords.grid(color='white')
-      ax1.coords['glon'].set_axislabel('Galactic Longitude')
-      ax1.coords['glat'].set_axislabel('Galactic Latitude')
-      #ax1.set_title('Projected HI')
+      if(hdr):
+         ax1=plt.subplot(1,1,1, projection=WCS(hdr)) 
+         im=ax1.imshow(rgb, origin='lower', interpolation='none')
+         ax1.coords.grid(color='white')
+         ax1.coords['glon'].set_axislabel('Galactic Longitude')
+         ax1.coords['glat'].set_axislabel('Galactic Latitude')
+      else:
+         ax1=plt.subplot(1,1,1)
+         im=ax1.imshow(rgb, origin='lower', interpolation='none')
+      ax1.set_title('Projected HI')
       #plt.show()  
       plt.savefig(prefix+'_'+str(k)+'.png', bbox_inches='tight')
       plt.close() 
