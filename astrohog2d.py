@@ -1,6 +1,11 @@
-"""
-astroHOG comparison of images
-"""
+#!/usr/bin/env python
+#
+# This file is part of AstroHOG
+#
+# CONTACT: soler[AT]mpia.de
+# Copyright (C) 2013-2018 Juan Diego Soler
+#   
+#------------------------------------------------------------------------------;
 
 import sys
 import numpy as np
@@ -14,59 +19,30 @@ from nose.tools import assert_equal, assert_true
 
 from statests import * 
 
-import tqdm
+from tqdm import tqdm
 
 # --------------------------------------------------------------------------------------------------------------------------------
-def BlockAverage(corrcube, nbx=7, nby=7, vlims=[0.,1.,0.,1.], weight=1.):
+def imablockaverage(corrframe, nbx=7, nby=7, weight=1.):
 
-   sz=np.shape(corrcube)
-   limsx=np.linspace(0,sz[2]-1,nbx+1,dtype=int)
-   limsy=np.linspace(0,sz[3]-1,nby+1,dtype=int)
-   vblocks=np.zeros([sz[0],sz[1],nbx,nby])
+   sz=np.shape(corrframe)
+   limsx=np.linspace(0,sz[0]-1,nbx+1,dtype=int)
+   limsy=np.linspace(0,sz[1]-1,nby+1,dtype=int)
 
    maxvblocks=np.zeros([nbx,nby])
    sigvblocks=np.zeros([nbx,nby])
+   vblocks=np.zeros([nbx,nby])
 
    for i in range(0, np.size(limsx)-1):
       for k in range(0, np.size(limsy)-1):
+         phi=corrframe[limsx[i]:limsx[i+1],limsy[k]:limsy[k+1]]
+         tempphi=phi.ravel()
+         wghts=0.*tempphi[np.isfinite(tempphi).nonzero()]+weight
+         pz, Zx = circ.tests.vtest(2.*tempphi[np.isfinite(tempphi).nonzero()],0.,w=wghts)
+         vblocks[i,k] = Zx
 
-         for vi in range(0, sz[0]):
-            for vk in range(0, sz[1]):
+   imaxb, jmaxb = (vblocks==np.max(vblocks)).nonzero()
 
-               phi = corrcube[vi,vk,limsx[i]:limsx[i+1],limsy[k]:limsy[k+1]]
-               tempphi=phi.ravel()
-               wghts=0.*tempphi[np.isfinite(tempphi).nonzero()]+weight
-               pz, Zx = circ.tests.vtest(2.*tempphi[np.isfinite(tempphi).nonzero()],0.,w=wghts)
-               vblocks[vi,vk,i,k] = Zx
-
-         tempvblocks=vblocks[:,:,i,k]
-         maxvblocks[i,k]=np.max(tempvblocks[np.isfinite(tempvblocks).nonzero()])
-         sigvblocks[i,k]=np.std(tempvblocks[np.isfinite(tempvblocks).nonzero()])
-
-   #if (np.logical_and(nbx==1,nby==1)):
-   #   fig, ax = plt.subplots(figsize = (9.0,8.0))
-   #   im=ax.imshow(vblocks[:,:,0,0], origin='lower', extent=vlims, vmin=0., vmax=np.max(maxvblocks), aspect='auto')
-   #   ax.set_xlabel(r'$v_{CO}$ [km/s]')
-   #   ax.set_ylabel(r'$v_{HI}$ [km/s]')
-   #   cbl=plt.colorbar(im, ax=ax)
-   #   cbl.ax.set_title(r'$V$')
-   #   plt.show()
-   #else:
-   #   fig, axs = plt.subplots(nbx,nby,figsize = (9.0,8.0))
-   #   fig.subplots_adjust(hspace=0.001, wspace=0.005)
-   #   for i in range(0,nbx):
-   #      for k in range(0, nby):
-   #         im=axs[nby-1-i,k].imshow(vblocks[:,:,i,k], origin='lower', extent=vlims, vmin=0., vmax=np.max(maxvblocks), aspect='auto')
-   #         if(np.logical_and(i==nby-1,k==0)):
-   #            axs[i,k].set_xlabel(r'$v_{CO}$ [km/s]')
-   #            axs[i,k].set_ylabel(r'$v_{HI}$ [km/s]')
-   #   cbl=plt.colorbar(im, ax=axs.ravel().tolist())
-   #   cbl.ax.set_title(r'$V$')
-   #   plt.show()
-
-   imaxb, jmaxb = (maxvblocks==np.max(maxvblocks)).nonzero()
-
-   return [limsx[imaxb[0]],limsx[imaxb[0]+1],limsy[jmaxb[0]],limsy[jmaxb[0]+1]], vblocks[:,:,imaxb[0], jmaxb[0]], maxvblocks
+   return vblocks
 
 # --------------------------------------------------------------------------------------------------------------------------------
 def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., ksz=1., nruns=10, mask1=0., mask2=0.):
@@ -75,28 +51,11 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., ksz=1., nruns=10, mask1=0., ma
    sz2=np.shape(ima2)
 
    mruns1=nruns
-   mruns2=nruns
-
-   ima1rav=ima1.ravel()
-   if (s_ima1 > 0.):
-      ind=np.arange(np.size(ima1rav))
-      cov1=np.zeros([np.size(ima1rav),np.size(ima1rav)])
-      cov1[ind,ind]=s_ima1
-      ima1MC=np.random.multivariate_normal(ima1rav,cov1,nruns)
-      mruns1=nruns      
-   else:  
-      ima1MC=[ima1rav]
+   if (s_ima1 == 0.):
       mruns1=1
 
-   ima2rav=ima2.ravel()
-   if (s_ima2 > 0.):
-      ind=np.arange(np.size(ima2rav))
-      cov2=np.zeros([np.size(ima2rav),np.size(ima2rav)])
-      cov2[ind,ind]=s_ima2
-      ima2MC=np.random.multivariate_normal(ima2rav,cov2,nruns)
-      mruns2=nruns
-   else:
-      ima2MC=[ima2rav]
+   mruns2=nruns
+   if (s_ima2 == 0.):
       mruns2=1
 
    rvec=np.zeros(mruns1*mruns2)
@@ -104,9 +63,11 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., ksz=1., nruns=10, mask1=0., ma
    vvec=np.zeros(mruns1*mruns2)
    amvec=np.zeros(mruns1*mruns2) 
 
-   for i in tqdm.trange(0,mruns1):
-      for k in tqdm.trange(0,mruns2):
-         circstats, corrframe, sima1, sima2=HOGcorr_imaLITE(np.reshape(ima1MC[i],sz1), np.reshape(ima2MC[k],sz2), ksz=ksz, mask1=mask1, mask2=mask2)
+   for i in range(0,mruns1):
+      rand1=np.random.normal(loc=ima1, scale=s_ima1+0.*ima1)
+      for k in range(0,mruns2):
+         rand2=np.random.normal(loc=ima2, scale=s_ima1+0.*ima1)         
+         circstats, corrframe, sima1, sima2=HOGcorr_imaLITE(rand1, rand2, ksz=ksz, mask1=mask1, mask2=mask2)
          rvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats[0]
          zvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats[1]
          vvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats[2]
@@ -147,12 +108,12 @@ def HOGcorr_imaLITE(ima1, ima2, ksz=1., mode='nearest', mask1=0., mask2=0.):
    # hogcorr -   
    # corrframe -
 
-   sima1=ndimage.filters.gaussian_filter(ima1, [ksz, ksz], order=[0,0], mode='nearest')
-   sima2=ndimage.filters.gaussian_filter(ima2, [ksz, ksz], order=[0,0], mode='nearest')
-   dI1dx=ndimage.filters.gaussian_filter(ima1, [ksz, ksz], order=[0,1], mode='nearest')
-   dI1dy=ndimage.filters.gaussian_filter(ima1, [ksz, ksz], order=[1,0], mode='nearest')
-   dI2dx=ndimage.filters.gaussian_filter(ima2, [ksz, ksz], order=[0,1], mode='nearest')
-   dI2dy=ndimage.filters.gaussian_filter(ima2, [ksz, ksz], order=[1,0], mode='nearest')
+   sima1=ndimage.filters.gaussian_filter(ima1, [ksz, ksz], order=[0,0], mode=mode)
+   sima2=ndimage.filters.gaussian_filter(ima2, [ksz, ksz], order=[0,0], mode=mode)
+   dI1dx=ndimage.filters.gaussian_filter(ima1, [ksz, ksz], order=[0,1], mode=mode)
+   dI1dy=ndimage.filters.gaussian_filter(ima1, [ksz, ksz], order=[1,0], mode=mode)
+   dI2dx=ndimage.filters.gaussian_filter(ima2, [ksz, ksz], order=[0,1], mode=mode)
+   dI2dy=ndimage.filters.gaussian_filter(ima2, [ksz, ksz], order=[1,0], mode=mode)
 
    # Calculation of the relative orientation angles
    tempphi=np.arctan2(dI1dx*dI2dy-dI1dy*dI2dx, dI1dx*dI2dx+dI1dy*dI2dy)
