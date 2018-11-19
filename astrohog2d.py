@@ -19,7 +19,7 @@ from nose.tools import assert_equal, assert_true
 
 from statests import * 
 
-from tqdm import tqdm
+#from tqdm import tqdm
 
 # --------------------------------------------------------------------------------------------------------------------------------
 def imablockaverage(corrframe, nbx=7, nby=7, weight=1.):
