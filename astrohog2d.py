@@ -77,7 +77,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
          vvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats[2]
          amvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))]=circstats[8]
 
-   circstats, corrframe, sima1, sima2=HOGcorr_imaLITE(ima1, ima2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2)
+   circstats, corrframe, sima1, sima2=HOGcorr_imaLITE(ima1, ima2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, mask1=mask1, mask2=mask2)
    outr=circstats[0]
    outv=circstats[2]
 
@@ -87,7 +87,6 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
       meanv=np.mean(vvec)
       am   =np.mean(amvec)
    else:
-      circstats, corrframe, sima1, sima2=HOGcorr_imaLITE(ima1, ima2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2)
       meanr=circstats[0]    
       meanz=circstats[1]
       meanv=circstats[2]
@@ -97,13 +96,8 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
    s_z  =np.std(zvec)
    s_v  =np.std(vvec)
    s_am =np.std(amvec)
-
    circstats=[meanr, meanz, meanv, s_r, s_z, s_v, outr, outv, am, s_am]
 
-   #import matplotlib.pyplot as plt
-   #plt.hist(vvec)
-   #plt.show()
-   #import pdb; pdb.set_trace()
    return circstats, corrframe, sima1, sima2
 
 
