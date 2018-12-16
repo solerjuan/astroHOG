@@ -45,7 +45,7 @@ def imablockaverage(corrframe, nbx=7, nby=7, weight=1.):
    return vblocks
 
 # --------------------------------------------------------------------------------------------------------------------------------
-def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns=10, mask1=0., mask2=0., gradthres1=0., gradthres2=0.):
+def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns=10, mask1=0., mask2=0., gradthres1=0., gradthres2=0., weights=None):
 
    sz1=np.shape(ima1)
    sz2=np.shape(ima2)
@@ -65,44 +65,48 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
 
    if (nruns > 0):
       print('MC draws ',mruns1,mruns2)
-   for i in range(0,mruns1):
-      rand1=np.random.normal(loc=ima1, scale=s_ima1+0.*ima1)
-      for k in range(0,mruns2):
-         if (nruns > 0): 
+
+      for i in range(0,mruns1):
+         rand1=np.random.normal(loc=ima1, scale=s_ima1+0.*ima1)
+         for k in range(0,mruns2):
             print('Iteration ',i,k)
-         rand2=np.random.normal(loc=ima2, scale=s_ima1+0.*ima1)         
-         circstats, corrframe, sima1, sima2=HOGcorr_imaLITE(rand1, rand2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, mask1=mask1, mask2=mask2)
-         rvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats[0]
-         zvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats[1]
-         vvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats[2]
-         amvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))]=circstats[8]
+            rand2=np.random.normal(loc=ima2, scale=s_ima1+0.*ima1)         
+            circstats, corrframe, sima1, sima2=HOGcorr_imaLITE(rand1, rand2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, mask1=mask1, mask2=mask2, weights=weights)
+            rvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats[0]
+            zvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats[1]
+            vvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats[2]
+            amvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))]=circstats[8]
 
-   circstats, corrframe, sima1, sima2=HOGcorr_imaLITE(ima1, ima2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, mask1=mask1, mask2=mask2)
-   outr=circstats[0]
-   outv=circstats[2]
-
-   if (nruns > 0):
       meanr=np.mean(rvec)
       meanz=np.mean(zvec)
       meanv=np.mean(vvec)
-      am   =np.mean(amvec)
-   else:
+      am   =np.mean(amvec)     
+      s_r  =np.std(rvec)
+      s_z  =np.std(zvec)
+      s_v  =np.std(vvec)
+      s_am =np.std(amvec)
+
+   else: 
+      circstats, corrframe, sima1, sima2=HOGcorr_imaLITE(ima1, ima2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, mask1=mask1, mask2=mask2, weights=weights)
+      outr=circstats[0]
+      outv=circstats[2]
+
       meanr=circstats[0]    
       meanz=circstats[1]
       meanv=circstats[2]
       am=circstats[8]
+      s_r  =0.
+      s_z  =0.
+      s_v  =0.
+      s_am =0.
 
-   s_r  =np.std(rvec)
-   s_z  =np.std(zvec)
-   s_v  =np.std(vvec)
-   s_am =np.std(amvec)
    circstats=[meanr, meanz, meanv, s_r, s_z, s_v, outr, outv, am, s_am]
 
    return circstats, corrframe, sima1, sima2
 
 
 # --------------------------------------------------------------------------------------------------------------------------------
-def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0., mask2=0., gradthres1=0., gradthres2=0.):
+def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0., mask2=0., gradthres1=0., gradthres2=0., weights=None):
    # Calculates the spatial correlation between im1 and im2 using the HOG method
    #
    # INPUTS
@@ -114,12 +118,20 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0
    # hogcorr -   
    # corrframe -
 
-   sima1=ndimage.filters.gaussian_filter(ima1, [ksz, ksz], order=[0,0], mode=mode)
-   sima2=ndimage.filters.gaussian_filter(ima2, [ksz, ksz], order=[0,0], mode=mode)
-   dI1dx=ndimage.filters.gaussian_filter(ima1, [ksz, ksz], order=[0,1], mode=mode)
-   dI1dy=ndimage.filters.gaussian_filter(ima1, [ksz, ksz], order=[1,0], mode=mode)
-   dI2dx=ndimage.filters.gaussian_filter(ima2, [ksz, ksz], order=[0,1], mode=mode)
-   dI2dy=ndimage.filters.gaussian_filter(ima2, [ksz, ksz], order=[1,0], mode=mode)
+   assert ima2.shape == ima1.shape, "Dimensions of ima2 and ima1 must match"
+   sz1=np.shape(ima1) 
+   if weights is None:
+      weights=np.ones(sz1)
+   assert weights.shape == ima1.shape, "Dimensions of weights and ima1 must match" 
+
+   pxksz=ksz/pxsz
+
+   sima1=ndimage.filters.gaussian_filter(ima1, [pxksz, pxksz], order=[0,0], mode=mode)
+   sima2=ndimage.filters.gaussian_filter(ima2, [pxksz, pxksz], order=[0,0], mode=mode)
+   dI1dx=ndimage.filters.gaussian_filter(ima1, [pxksz, pxksz], order=[0,1], mode=mode)
+   dI1dy=ndimage.filters.gaussian_filter(ima1, [pxksz, pxksz], order=[1,0], mode=mode)
+   dI2dx=ndimage.filters.gaussian_filter(ima2, [pxksz, pxksz], order=[0,1], mode=mode)
+   dI2dy=ndimage.filters.gaussian_filter(ima2, [pxksz, pxksz], order=[1,0], mode=mode)
 
    # Calculation of the relative orientation angles
    tempphi=np.arctan2(dI1dx*dI2dy-dI1dy*dI2dx, dI1dx*dI2dx+dI1dy*dI2dy)
@@ -142,14 +154,10 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0
    good=np.isfinite(phi).nonzero()
 
    Zx, s_Zx, meanPhi = HOG_PRS(phi[good])
-
-   weight=(pxsz/ksz)**2
-   wghts=0.*phi[good]+weight
-
-   rvl=circ.descriptive.resultant_vector_length(2.*phi[good], w=wghts)
-   can=circ.descriptive.mean(2.*phi[good], w=wghts)/2.
-   pz, Z = circ.tests.rayleigh(2.*phi[good],  w=wghts)
-   pv, V = circ.tests.vtest(2.*phi[good], 0., w=wghts)
+   rvl=circ.descriptive.resultant_vector_length(2.*phi[good], w=weights[good])
+   can=circ.descriptive.mean(2.*phi[good], w=weights[good])/2.
+   pz, Z = circ.tests.rayleigh(2.*phi[good],  w=weights[good])
+   pv, V = circ.tests.vtest(2.*phi[good], 0., w=weights[good])
 
    myV, s_myV, meanphi = HOG_PRS(2.*phi[good])
 

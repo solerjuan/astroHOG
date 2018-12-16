@@ -99,7 +99,7 @@ def BlockAverage(corrcube, nbx=7, nby=7, vlims=[0.,1.,0.,1.], weight=1.):
 
 
 # ================================================================================================================
-def HOGcorr_ppvcubes(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=1., mask1=0, mask2=0, gradthres1=0., gradthres2=0., s_cube1=0., s_cube2=0., nruns=10):
+def HOGcorr_ppvcubes(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=1., mask1=0, mask2=0, gradthres1=0., gradthres2=0., s_cube1=0., s_cube2=0., nruns=0, weights=None):
    # Calculates the HOG correlation between PPV cubes   
    #
    # INPUTS
@@ -141,11 +141,11 @@ def HOGcorr_ppvcubes(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., 
          frame2=cube2[k,:,:]
          if np.array_equal(np.shape(cube1), np.shape(mask1)):
             if np.array_equal(np.shape(cube2), np.shape(mask2)):				
-               circstats, corrframe, sframe1, sframe2 = HOGcorr_ima(frame1, frame2, pxsz=pxsz, ksz=ksz, res=res, mask1=mask1[i,:,:], mask2=mask2[k,:,:], gradthres1=gradthres1, gradthres2=gradthres2, s_ima1=s_cube1, s_ima2=s_cube2, nruns=nruns)
+               circstats, corrframe, sframe1, sframe2 = HOGcorr_ima(frame1, frame2, pxsz=pxsz, ksz=ksz, res=res, mask1=mask1[i,:,:], mask2=mask2[k,:,:], gradthres1=gradthres1, gradthres2=gradthres2, s_ima1=s_cube1, s_ima2=s_cube2, nruns=nruns, weights=weights)
             else:
-               circstats, corrframe, sframe1, sframe2 = HOGcorr_ima(frame1, frame2, pxsz=pxsz, ksz=ksz, res=res, mask1=mask1[i,:,:], gradthres1=gradthres1, gradthres2=gradthres2, s_ima1=s_cube1, s_ima2=s_cube2, nruns=nruns)
+               circstats, corrframe, sframe1, sframe2 = HOGcorr_ima(frame1, frame2, pxsz=pxsz, ksz=ksz, res=res, mask1=mask1[i,:,:], gradthres1=gradthres1, gradthres2=gradthres2, s_ima1=s_cube1, s_ima2=s_cube2, nruns=nruns, weights=weights)
          else:
-               circstats, corrframe, sframe1, sframe2 = HOGcorr_ima(frame1, frame2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, s_ima1=s_cube1, s_ima2=s_cube2, nruns=nruns)
+               circstats, corrframe, sframe1, sframe2 = HOGcorr_ima(frame1, frame2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, s_ima1=s_cube1, s_ima2=s_cube2, nruns=nruns, weights=weights)
 
          # circstats=[meanr, meanz, meanv, s_r, s_z, s_v, outr, outv, am, s_am]
          rplane[i-z1min,k-z2min] =circstats[0]
