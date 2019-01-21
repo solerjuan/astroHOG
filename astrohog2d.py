@@ -13,6 +13,7 @@ from astropy.convolution import convolve_fft
 from astropy.convolution import Gaussian2DKernel
 from congrid import *
 from scipy import ndimage
+from scipy import stats
 
 import pycircstat as circ
 from nose.tools import assert_equal, assert_true
@@ -67,24 +68,36 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
       print('MC draws ',mruns1,mruns2)
 
       for i in range(0,mruns1):
-         rand1=np.random.normal(loc=ima1, scale=s_ima1+0.*ima1)
+         if (s_ima1 > 0.):
+            rand1=np.random.normal(loc=ima1, scale=s_ima1+0.*ima1)
+         else:
+            rand1=ima1                
          for k in range(0,mruns2):
             print('Iteration ',i,k)
-            rand2=np.random.normal(loc=ima2, scale=s_ima1+0.*ima1)         
+            if (s_ima1 > 0.):
+               rand2=np.random.normal(loc=ima2, scale=s_ima2+0.*ima2)
+            else:           
+               rand2=ima2
             circstats, corrframe, sima1, sima2=HOGcorr_imaLITE(rand1, rand2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, mask1=mask1, mask2=mask2, weights=weights)
             rvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats[0]
             zvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats[1]
             vvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats[2]
             amvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))]=circstats[8]
 
+      outr=circstats[0] 
+      outv=circstats[2]
+
       meanr=np.mean(rvec)
       meanz=np.mean(zvec)
       meanv=np.mean(vvec)
-      am   =np.mean(amvec)     
+      am=np.mean(amvec)
+      pear=circstats[9]     
       s_r  =np.std(rvec)
       s_z  =np.std(zvec)
       s_v  =np.std(vvec)
       s_am =np.std(amvec)
+
+      ngood=circstats[10]
 
    else: 
       circstats, corrframe, sima1, sima2=HOGcorr_imaLITE(ima1, ima2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, mask1=mask1, mask2=mask2, weights=weights)
@@ -95,12 +108,15 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
       meanz=circstats[1]
       meanv=circstats[2]
       am=circstats[8]
+      pear=circstats[9]
       s_r  =0.
       s_z  =0.
       s_v  =0.
       s_am =0.
-
-   circstats=[meanr, meanz, meanv, s_r, s_z, s_v, outr, outv, am, s_am]
+   
+      ngood=circstats[10]    
+ 
+   circstats=[meanr, meanz, meanv, s_r, s_z, s_v, outr, outv, am, s_am, pear, ngood]
 
    return circstats, corrframe, sima1, sima2
 
@@ -122,6 +138,9 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0
    sz1=np.shape(ima1) 
    if weights is None:
       weights=np.ones(sz1)
+   if (np.size(weights)==1): 
+      uniweights=weights
+      weights=uniweights*np.ones(sz1) 
    assert weights.shape == ima1.shape, "Dimensions of weights and ima1 must match" 
 
    pxksz=ksz/pxsz
@@ -161,9 +180,13 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0
 
    myV, s_myV, meanphi = HOG_PRS(2.*phi[good])
 
-   am = HOG_AM(phi[good])
+   am=HOG_AM(phi[good])
 
-   circstats=[rvl, Z, V, pz, pv, myV, s_myV, meanphi, am]
+   pear, peap = stats.pearsonr(sima1[good], sima2[good])
+
+   ngood=np.size(good)
+   
+   circstats=[rvl, Z, V, pz, pv, myV, s_myV, meanphi, am, pear, ngood]
    corrframe=phi
    
    return circstats, corrframe, sima1, sima2
