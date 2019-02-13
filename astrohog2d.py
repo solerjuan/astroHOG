@@ -47,12 +47,12 @@ def imablockaverage(corrframe, nbx=7, nby=7, weight=1.):
 
 # --------------------------------------------------------------------------------------------------------------------------------
 def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns=10, mask1=0., mask2=0., gradthres1=0., gradthres2=0., weights=None):
-   """ Calculates the spatial correlation between im1 and im2 using the HOG method and it confidence interval using Montecarlo sampling 
+   """ Calculates the spatial correlation between im1 and im2 using the HOG method and its confidence interval using Montecarlo sampling 
 
    Parameters
    ----------   
-   ima1 : 
-   ima2 :
+   ima1 : array corresponding to the first image to be compared 
+   ima2 : array corresponding to the second image to be compared
    s_ima1 : 
    s_ima2 : 
    pxsz :
