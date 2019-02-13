@@ -10,7 +10,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 #sys.path.append('/disk2/soler/PYTHON/astroHOG/')
-from astrohog import *
+#from astrohog import *
 
 from astropy.convolution import convolve_fft
 from astropy.convolution import Gaussian2DKernel
@@ -73,11 +73,11 @@ def redct():
    return COcolort
 
 # -----------------------------------------------------------------------------------------------------------
-def rgbcube(cube, zmin, zmax, logscale=False, minref=0., maxref=0., ksz=1, EquiBins=True):
+def rgbcube(cube, zmin, zmax, autoscale=False, minref=None, maxref=None, ksz=1, EquiBins=True, minauto=0.2, maxauto=0.975):
 
+   nbins=1000
    sz=np.shape(cube)
    cube[np.isnan(cube).nonzero()]=0.
-   #cube[(cube < noiselevel)]==noiselevel
 
    rgb=np.zeros([sz[1],sz[2],3])
 
@@ -92,79 +92,97 @@ def rgbcube(cube, zmin, zmax, logscale=False, minref=0., maxref=0., ksz=1, EquiB
    # ------------------------------------------------------------------------------------
    firstb=np.max((cumsumI < binwd).nonzero())
    if (EquiBins):
-      tempmap=cube[zmin:zmin+firstb-1,:,:].mean(axis=0)
+      tempcube=cube[zmin:zmin+firstb-1,:,:]
    else:
-      tempmap=cube[zmin:zmin+pitch-1,:,:].mean(axis=0)
+      tempcube=cube[zmin:zmin+pitch-1,:,:]
+   tempcube[np.isnan(tempcube).nonzero()]=0.
+   if (minref):
+      tempcube[(tempcube<minref).nonzero()]=0.
+   tempmap=tempcube.mean(axis=0)
+    
+   hist, bin_edges = np.histogram(tempmap, density=True, bins=nbins)
+   bin_centres=0.5*(bin_edges[0:np.size(bin_edges)-1]+bin_edges[1:np.size(bin_edges)])
+   chist=np.cumsum(hist)
 
-   if(logscale):
-      inmap=np.log10(np.copy(tempmap))
-      inmap[np.isnan(inmap).nonzero()]=np.min(inmap[np.isfinite(inmap).nonzero()])
+   cond=(chist < minauto*chist[np.size(chist)-1]).nonzero()
+   if (np.size(cond)==0):
+      mini=np.min(bin_centres)
    else:
-      if(ksz > 1):
-         inmap=convolve_fft(tempmap, Gaussian2DKernel(ksz))
-      else:
-         inmap=tempmap
-   
-   if (minref==0.):
-      minref=np.min(inmap[np.isfinite(inmap).nonzero()])
-   if (maxref==0.):
-      maxref=np.max(inmap[np.isfinite(inmap).nonzero()])
+      mini=np.max(bin_edges[cond])
+   cond=(chist > maxauto*chist[np.size(chist)-1]).nonzero()
+   if (np.size(cond)==0):
+      maxi=np.max(bin_centres)
+   else: 
+      maxi=np.min(bin_edges[cond])
+ 
+   if(autoscale): 
+      tempmap[(tempmap < mini).nonzero()]=mini
+      tempmap[(tempmap > maxi).nonzero()]=maxi
 
-   inmap[np.isinf(inmap).nonzero()]=minref
-   inmap[(inmap < minref).nonzero()]=minref
-   inmap[(inmap > maxref).nonzero()]=maxref
-   red=(inmap-np.min(inmap))/(np.max(inmap)-np.min(inmap))
+   red=(tempmap-np.min(tempmap))/(np.max(tempmap)-np.min(tempmap))
 
    # ------------------------------------------------------------------------------------
    secondb=np.max((cumsumI < 2.*binwd).nonzero())
    if (EquiBins):
-      tempmap=cube[zmin+firstb:zmin+secondb,:,:].mean(axis=0)
+      tempcube=cube[zmin+firstb:zmin+secondb,:,:]
    else:
-      tempmap=cube[zmin+pitch:zmin+2*pitch-1,:,:].mean(axis=0)
+      tempcube=cube[zmin+pitch:zmin+2*pitch-1,:,:]
+   tempcube[np.isnan(tempcube).nonzero()]=0.
+   if (minref):
+      tempcube[(tempcube<minref).nonzero()]=0.
+   tempmap=tempcube.mean(axis=0)
 
-   if(logscale):
-      inmap=np.log10(np.copy(tempmap))
-      inmap[np.isnan(inmap).nonzero()]=np.min(inmap[np.isfinite(inmap).nonzero()])
+   hist, bin_edges = np.histogram(tempmap, density=True, bins=nbins)
+   bin_centres=0.5*(bin_edges[0:np.size(bin_edges)-1]+bin_edges[1:np.size(bin_edges)])
+   chist=np.cumsum(hist)  
+
+   cond=(chist < minauto*chist[np.size(chist)-1]).nonzero()
+   if (np.size(cond)==0):
+      mini=np.min(bin_centres)
    else:
-      if(ksz > 1):
-         inmap=convolve_fft(tempmap, Gaussian2DKernel(ksz))
-      else:
-         inmap=tempmap
+      mini=np.max(bin_edges[cond])
+   cond=(chist > maxauto*chist[np.size(chist)-1]).nonzero()
+   if (np.size(cond)==0):
+      maxi=np.max(bin_centres)
+   else:
+      maxi=np.min(bin_edges[cond])
 
-   if (minref==0.):
-      minref=np.min(inmap[np.isfinite(inmap).nonzero()])
-   if (maxref==0.):
-      maxref=np.max(inmap[np.isfinite(inmap).nonzero()])
-   
-   inmap[np.isinf(inmap).nonzero()]=minref
-   inmap[(inmap < minref).nonzero()]=minref
-   inmap[(inmap > maxref).nonzero()]=maxref
-   green=(inmap-np.min(inmap))/(np.max(inmap)-np.min(inmap))
+   if(autoscale):
+      tempmap[(tempmap < mini).nonzero()]=mini
+      tempmap[(tempmap > maxi).nonzero()]=maxi
+
+   green=(tempmap-np.min(tempmap))/(np.max(tempmap)-np.min(tempmap))
 
    # ------------------------------------------------------------------------------------ 
    if (EquiBins):
-      tempmap=cube[zmin+secondb+1:zmax,:,:].mean(axis=0)
+      tempcube=cube[zmin+secondb+1:zmax,:,:]
    else:
-      tempmap=cube[zmin+2*pitch:zmax,:,:].mean(axis=0)
+      tempcube=cube[zmin+2*pitch:zmax,:,:]
+   tempcube[np.isnan(tempcube).nonzero()]=0.
+   if (minref):
+      tempcube[(tempcube<minref).nonzero()]=0.
+   tempmap=tempcube.mean(axis=0)
 
-   if(logscale):
-      inmap=np.log10(np.copy(tempmap))
-      inmap[np.isnan(inmap).nonzero()]=np.min(inmap[np.isfinite(inmap).nonzero()])
+   hist, bin_edges = np.histogram(tempmap, density=True, bins=nbins)
+   bin_centres=0.5*(bin_edges[0:np.size(bin_edges)-1]+bin_edges[1:np.size(bin_edges)])
+   chist=np.cumsum(hist)
+
+   cond=(chist < minauto*chist[np.size(chist)-1]).nonzero()
+   if (np.size(cond)==0):
+      mini=np.min(bin_centres)
    else:
-      if(ksz > 1):
-         inmap=convolve_fft(tempmap, Gaussian2DKernel(ksz))
-      else:
-         inmap=tempmap
+      mini=np.max(bin_edges[cond])
+   cond=(chist > maxauto*chist[np.size(chist)-1]).nonzero()
+   if (np.size(cond)==0):
+      maxi=np.max(bin_centres)
+   else:
+      maxi=np.min(bin_edges[cond])
 
-   if (minref==0.):
-      minref=np.min(inmap[np.isfinite(inmap).nonzero()])
-   if (maxref==0.):
-      maxref=np.max(inmap[np.isfinite(inmap).nonzero()])
-      
-   inmap[np.isinf(inmap).nonzero()]=minref
-   inmap[(inmap < minref).nonzero()]=minref
-   inmap[(inmap > maxref).nonzero()]=maxref 
-   blue=(inmap-np.min(inmap))/(np.max(inmap)-np.min(inmap))
+   if(autoscale):
+      tempmap[(tempmap < mini).nonzero()]=mini
+      tempmap[(tempmap > maxi).nonzero()]=maxi
+   
+   blue=(tempmap-np.min(tempmap))/(np.max(tempmap)-np.min(tempmap))
 
    rgb[:,:,0]=red
    rgb[:,:,1]=green
@@ -240,6 +258,7 @@ def rgbmovie(cube, zmin, zmax, logscale=False, minref=0., maxref=0.45, ksz=1, gr
       else:
          ax1=plt.subplot(1,1,1)
          im=ax1.imshow(rgb, origin='lower', interpolation='none')
+      rgb=rgbcube(cube1, zmin1, zmax1, minref=minrm1, EquiBins=False)
       ax1.set_title('Projected HI')
       #plt.show()  
       plt.savefig(prefix+'_'+str(k)+'.png', bbox_inches='tight')
