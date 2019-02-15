@@ -20,7 +20,7 @@ from nose.tools import assert_equal, assert_true
 
 from statests import * 
 
-#from tqdm import tqdm
+from tqdm import tqdm
 
 # --------------------------------------------------------------------------------------------------------------------------------
 def imablockaverage(corrframe, nbx=7, nby=7, weight=1.):
@@ -85,7 +85,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
    amvec=np.zeros(mruns1*mruns2) 
 
    if (nruns > 0):
-      print('MC draws ',mruns1,mruns2)
+      pbar = tqdm(total=mruns1*mruns2)
 
       for i in range(0,mruns1):
          if (s_ima1 > 0.):
@@ -93,7 +93,6 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
          else:
             rand1=ima1                
          for k in range(0,mruns2):
-            print('Iteration ',i,k)
             if (s_ima1 > 0.):
                rand2=np.random.normal(loc=ima2, scale=s_ima2+0.*ima2)
             else:           
@@ -103,6 +102,10 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
             zvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats[1]
             vvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats[2]
             amvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))]=circstats[8]
+
+            pbar.update()
+
+      pbar.close()  
 
       outr=circstats[0] 
       outv=circstats[2]
@@ -143,16 +146,26 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
 
 # --------------------------------------------------------------------------------------------------------------------------------
 def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0., mask2=0., gradthres1=0., gradthres2=0., weights=None):
-   # Calculates the spatial correlation between im1 and im2 using the HOG method
-   #
-   # INPUTS
-   # ima1 -
-   # ima2 -
-   # ksz -	Size of the derivative kernel in pixel units
-   #
-   # OUTPUTS
-   # hogcorr -   
-   # corrframe -
+   """ Calculates the spatial correlation between im1 and im2 using the HOG method 
+
+   Parameters
+   ----------   
+   ima1 : array corresponding to the first image to be compared 
+   ima2 : array corresponding to the second image to be compared
+   s_ima1 : 
+   s_ima2 : 
+   pxsz :
+   ksz : Size of the derivative kernel in the pixel size units
+   
+   Returns
+   -------
+    hogcorr :  
+    corrframe :
+
+   Examples
+   --------
+
+   """
 
    assert ima2.shape == ima1.shape, "Dimensions of ima2 and ima1 must match"
    sz1=np.shape(ima1) 
@@ -211,114 +224,6 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0
    
    return circstats, corrframe, sima1, sima2
 
-
-# -------------------------------------------------------------------------------------------------------------------------------
-def HOGcorr_frame(frame1, frame2, gradthres1=0., gradthres2=0., pxsz=1., ksz=1., res=1., mask1=0, mask2=0, wd=1, allow_huge=False, regrid=False):
-   # Calculates the spatial correlation between frame1 and frame2 using the HOG method
-   #
-   # INPUTS
-   # frame1 -
-   # frame2 -
-   # gradthres1 -
-   # gradthres2 -
-   # pxsz -
-   # ksz -
-   # res -
-   # mask1 -
-   # mask2 -
-   # wd -
-   # regrid -
-   #
-   # OUTPUTS
-   # hogcorr -   
-   # corrframe -
-
-   sf=3. #Number of pixels per kernel FWHM      
-
-   pxksz =ksz/pxsz
-   pxres =res/pxsz
-
-   sz1=np.shape(frame1)
-   sz2=np.shape(frame1)
-
-   if (ksz > 1):
-      weight=(pxsz/ksz)**2
-
-      if (regrid):
-         intframe1=congrid(frame1, [np.int(np.round(sf*sz1[0]/pxres)), np.int(np.round(sf*sz1[1]/pxres))])
-         intframe2=congrid(frame2, [np.int(np.round(sf*sz1[0]/pxres)), np.int(np.round(sf*sz1[1]/pxres))])
-         if np.array_equal(np.shape(frame1), np.shape(mask1)):
-            intmask1=congrid(mask1, [np.int(np.round(sf*sz1[0]/pxres)), np.int(np.round(sf*sz1[1]/pxres))])
-            intmask1[(intmask1 > 0.).nonzero()]=1.
-            if np.array_equal(np.shape(frame2), np.shape(mask2)):
-               intmask2=congrid(mask2, [np.int(np.round(sf*sz1[0]/pxres)), np.int(np.round(sf*sz1[1]/pxres))])
-               intmask2[(intmask2 > 0.).nonzero()]=1.
-      else:
-         intframe1=frame1
-         intframe2=frame2
-         intmask1=mask1
-         intmask2=mask2
-      smoothframe1=ndimage.filters.gaussian_filter(frame1, [pxksz, pxksz], order=[0,0], mode='nearest')
-      smoothframe2=ndimage.filters.gaussian_filter(frame2, [pxksz, pxksz], order=[0,0], mode='nearest')
-      dI1dx=ndimage.filters.gaussian_filter(frame1, [pxksz, pxksz], order=[0,1], mode='nearest')
-      dI1dy=ndimage.filters.gaussian_filter(frame1, [pxksz, pxksz], order=[1,0], mode='nearest')
-      dI2dx=ndimage.filters.gaussian_filter(frame2, [pxksz, pxksz], order=[0,1], mode='nearest')
-      dI2dy=ndimage.filters.gaussian_filter(frame2, [pxksz, pxksz], order=[1,0], mode='nearest')
-
-   else:
-      weight=(pxsz/res)**2
-
-      intframe1=frame1
-      intframe2=frame2
-      intmask1=mask1
-      intmask2=mask2
-      smoothframe1=frame1
-      smoothframe2=frame2
-      dI1dx=ndimage.filters.gaussian_filter(frame1, [1, 1], order=[0,1], mode='nearest')
-      dI1dy=ndimage.filters.gaussian_filter(frame1, [1, 1], order=[1,0], mode='nearest')
-      dI2dx=ndimage.filters.gaussian_filter(frame2, [1, 1], order=[0,1], mode='nearest')
-      dI2dy=ndimage.filters.gaussian_filter(frame2, [1, 1], order=[1,0], mode='nearest') 
-
-   # Calculation of the relative orientation angles
-   #tempphi0=np.arctan2(grad1[1]*grad2[0]-grad1[0]*grad2[1], grad1[0]*grad2[0]+grad1[1]*grad2[1]) 
-   tempphi=np.arctan2(dI1dx*dI2dy-dI1dy*dI2dx, dI1dx*dI2dx+dI1dy*dI2dy)
-   phi=np.arctan(np.tan(tempphi))
-
-   # Excluding small gradients
-   normGrad1=np.sqrt(dI1dx**2+dI1dy**2) 
-   normGrad2=np.sqrt(dI2dx**2+dI2dy**2) 
-   bad=np.logical_or(normGrad1 <= gradthres1, normGrad2 <= gradthres2).nonzero()
-   phi[bad]=np.nan
-
-   corrframe=phi#np.cos(2.*phi)
-
-   # Excluding masked regions   
-   if np.array_equal(np.shape(intframe1), np.shape(intmask1)):
-      corrframe[(intmask1 == 0.).nonzero()]=np.nan
-      if np.array_equal(np.shape(intframe2), np.shape(intmask2)):
-         corrframe[(intmask2 == 0.).nonzero()]=np.nan
-         good=np.logical_and(np.logical_and(np.isfinite(phi), intmask1 > 0), intmask2 > 0).nonzero()
-      else:
-         good=np.logical_and(np.isfinite(phi), intmask1 > 0).nonzero()
-   else:
-         good=np.isfinite(phi).nonzero()
-
-   Zx, s_Zx, meanPhi = HOG_PRS(phi[good])
-
-   wghts=0.*phi[good]+weight
-
-   rvl=circ.descriptive.resultant_vector_length(2.*phi[good], w=wghts)
-   can=circ.descriptive.mean(2.*phi[good], w=wghts)/2.
-   pz, Z = circ.tests.rayleigh(2.*phi[good],  w=wghts)
-   pv, V = circ.tests.vtest(2.*phi[good], 0., w=wghts)
-
-   myV, s_myV, meanphi = HOG_PRS(2.*phi[good])
-
-   am = HOG_AM(phi[good])
- 
-   circstats=[rvl, Z, V, pz, pv, myV, s_myV, meanphi, am]
-
-   return circstats, corrframe, smoothframe1, smoothframe2
    
 # -------------------------------------------------------------------------------------------------------------------------------
 def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., pxsz=1., ksz=1., res=1., mask1=0, mask2=0, wd=1, allow_huge=False, regrid=False):

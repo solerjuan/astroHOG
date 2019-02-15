@@ -6,6 +6,7 @@
 # Copyright (C) 2013-2017 Juan Diego Soler
 #   
 #------------------------------------------------------------------------------;
+
 import sys
 import numpy as np
 from astropy.convolution import convolve_fft
@@ -22,6 +23,8 @@ import multiprocessing
 
 from astrohog2d import *
 from statests import *
+
+from tqdm import tqdm
 
 CorrMapPair = collections.namedtuple('CorrMapPair', [
    'map1','map2',
@@ -137,9 +140,11 @@ def HOGcorr_ppvcubes(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., 
    corrframe_temp=np.zeros([sz1[1],sz1[2]]) 
    maskcube=np.zeros(sz1) 
 
+   pbar = tqdm(total=(z1max-z1min)*(z2max-z2min))
+
    for i in range(z1min, z1max+1):
       for k in range(z2min, z2max+1):  
-         print(i-z1min,k-z2min)
+         print('Channel '+str(i-z1min)+'/'+str(z1max-z1min)+' and '+str(k-z2min)+'/'+str(z2max-z2min))
          frame1=cube1[i,:,:]
          frame2=cube2[k,:,:]
          if np.array_equal(np.shape(cube1), np.shape(mask1)):
@@ -171,7 +176,11 @@ def HOGcorr_ppvcubes(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., 
   
          scube2[k,:,:]=sframe2
       
+         pbar.update()
+
       scube1[i,:,:]=sframe1 
+
+   pbar.close() 
 
    return [rplane,zplane,vplane,s_rplane,s_zplane,s_vplane,rplane0,vplane0,amplane,s_amplane,pearplane,neleplane], corrcube, scube1, scube2
 
