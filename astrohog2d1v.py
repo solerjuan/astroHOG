@@ -168,7 +168,7 @@ def HOGcorr_ppvcubes(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., 
          vplane0[i-z1min,k-z2min] =circstats[7]
             
          s_rplane[i-z1min,k-z2min] =circstats[3]
-         s_rplane[i-z1min,k-z2min] =circstats[4]
+         s_zplane[i-z1min,k-z2min] =circstats[4]
          s_vplane[i-z1min,k-z2min] =circstats[5]
          s_amplane[i-z1min,k-z2min]=circstats[9]
          
