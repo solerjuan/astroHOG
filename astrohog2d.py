@@ -18,9 +18,16 @@ from scipy import stats
 import pycircstat as circ
 from nose.tools import assert_equal, assert_true
 
+from skimage import data, img_as_float
+from skimage.measure import compare_ssim as ssim
+
 from statests import * 
 
 from tqdm import tqdm
+
+#  -------------------------------------------------------------------------------------------------------------------------------
+def mse(x, y):
+    return np.linalg.norm(x - y)
 
 # --------------------------------------------------------------------------------------------------------------------------------
 def imablockaverage(corrframe, nbx=7, nby=7, weight=1.):
@@ -121,6 +128,8 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
       s_am =np.std(amvec)
 
       ngood=circstats[10]
+      ssimv=circstats[11]
+      msev =circstats[12] 
 
    else: 
       circstats, corrframe, sima1, sima2=HOGcorr_imaLITE(ima1, ima2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, mask1=mask1, mask2=mask2, weights=weights)
@@ -138,8 +147,10 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
       s_am =0.
    
       ngood=circstats[10]    
+      ssimv=circstats[11]
+      msev =circstats[12]
  
-   circstats=[meanr, meanz, meanv, s_r, s_z, s_v, outr, outv, am, s_am, pear, ngood]
+   circstats=[meanr, meanz, meanv, s_r, s_z, s_v, outr, outv, am, s_am, pear, ngood, ssimv, msev]
 
    return circstats, corrframe, sima1, sima2
 
@@ -218,8 +229,11 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0
    pear, peap = stats.pearsonr(sima1[good], sima2[good])
 
    ngood=np.size(good)
-   
-   circstats=[rvl, Z, V, pz, pv, myV, s_myV, meanphi, am, pear, ngood]
+
+   ssimv=ssim(sima1[good], sima2[good])
+   msev =mse(sima1[good], sima2[good])
+
+   circstats=[rvl, Z, V, pz, pv, myV, s_myV, meanphi, am, pear, ngood, ssimv, msev]
    corrframe=phi
    
    return circstats, corrframe, sima1, sima2

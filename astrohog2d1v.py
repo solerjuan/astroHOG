@@ -123,6 +123,9 @@ def HOGcorr_ppvcubes(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., 
 
    pearplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
    neleplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
+ 
+   ssimplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
+   mseplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
 
    rplane0=np.zeros([z1max+1-z1min, z2max+1-z2min])
    vplane0=np.zeros([z1max+1-z1min, z2max+1-z2min]) 
@@ -171,7 +174,10 @@ def HOGcorr_ppvcubes(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., 
          s_zplane[i-z1min,k-z2min] =circstats[4]
          s_vplane[i-z1min,k-z2min] =circstats[5]
          s_amplane[i-z1min,k-z2min]=circstats[9]
-         
+     
+         ssimplane[i-z1min,k-z2min]=circstats[12]
+         mseplane[i-z1min,k-z2min]=circstats[13]
+    
          corrcube[i-z1min,k-z2min,:,:]=corrframe     
   
          scube2[k,:,:]=sframe2
@@ -182,7 +188,7 @@ def HOGcorr_ppvcubes(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., 
 
    pbar.close() 
 
-   return [rplane,zplane,vplane,s_rplane,s_zplane,s_vplane,rplane0,vplane0,amplane,s_amplane,pearplane,neleplane], corrcube, scube1, scube2
+   return [rplane,zplane,vplane,s_rplane,s_zplane,s_vplane,rplane0,vplane0,amplane,s_amplane,pearplane,neleplane,ssimplane,mseplane], corrcube, scube1, scube2
 
 
 # ================================================================================================================
