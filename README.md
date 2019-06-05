@@ -33,21 +33,35 @@ archivePrefix = "arXiv",
 ```
 Citation courtesy of [ADS](https://ui.adsabs.harvard.edu/#).
 
-=================================
+==================================
+
 Dependencies:
 
 astropy
+
 numpy
+
 sys
+
 scipy
+
 nose
+
 scikit-image
+
 tqdm
+
 pycircstat
+
 pandas
+
 reproject
 
-================================
+==================================
+
 
 First steps: 
-Check out the example notebooks: examples/compareimages.ipynb and examples/comparecubes.ipynb 
+
+Check out the example notebooks: 
+
+examples/compareimages.ipynb and examples/comparecubes.ipynb 
