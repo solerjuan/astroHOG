@@ -1,6 +1,6 @@
 
 import sys
-sys.path.append('../pyastrohog/')
+sys.path.append('../')
 from astrohog2d import *
 
 import matplotlib.image as mpimg
@@ -10,7 +10,7 @@ from astropy.io import fits
 image1 = scipy.ndimage.imread('../data/image.001.png', flatten=True)
 image2 = scipy.ndimage.imread('../data/image.002.png', flatten=True)
 
-circstats, corrframe, smoothframe1, smoothframe2 = HOGcorr_frame(image1, image2, ksz=3.)
+circstats, corrframe, smoothframe1, smoothframe2 = HOGcorr_ima(image1, image2, ksz=3.)
 
 print('Mean resultant vector (r)        ', circstats[0])
 print('Rayleigh statistic (Z)           ', circstats[1])
@@ -23,7 +23,7 @@ hist, bin_edges = np.histogram(corrframe*180.0/np.pi, density=True, range=[-90.,
 bin_center=0.5*(bin_edges[0:np.size(bin_edges)-1]+bin_edges[1:np.size(bin_edges)])
 
 fig, ax = plt.subplots(2,3,figsize=(18.5, 10.5))
-import pdb; pdb.set_trace()
+#import pdb; pdb.set_trace()
 ax[0,0].imshow(image1, cmap='Greys_r')
 ax[0,1].imshow(image2, cmap='Greys_r')
 im=ax[0,2].imshow(np.abs(corrframe)*180.0/np.pi, cmap='spring')
