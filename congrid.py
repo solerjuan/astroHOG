@@ -44,7 +44,7 @@ def congrid(a, newdims, method='linear', centre=False, minusone=False):
     dimlist = []
 
     if method == 'neighbour':
-        for i in range( ndims ):
+        for i in ange( ndims ):
             base = n.indices(newdims)[i]
             dimlist.append( (old[i] - m1) / (newdims[i] - m1) \
                             * (base + ofs) - ofs )
@@ -65,7 +65,7 @@ def congrid(a, newdims, method='linear', centre=False, minusone=False):
         mint = scipy.interpolate.interp1d( olddims[-1], a, kind=method )
         newa = mint( dimlist[-1] )
 
-        trorder = [ndims - 1] + range( ndims - 1 )
+        trorder = [ndims - 1] + list(range( ndims - 1 ))
         for i in range( ndims - 2, -1, -1 ):
             newa = newa.transpose( trorder )
 
