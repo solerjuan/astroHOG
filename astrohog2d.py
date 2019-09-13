@@ -187,7 +187,7 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0
       weights=uniweights*np.ones(sz1) 
    assert weights.shape == ima1.shape, "Dimensions of weights and ima1 must match" 
 
-   pxksz=ksz/pxsz
+   pxksz=(ksz/(2*np.sqrt(2.*np.log(2.))))/pxsz #gaussian_filter takes sigma instead of FWHM as input
 
    sima1=ndimage.filters.gaussian_filter(ima1, [pxksz, pxksz], order=[0,0], mode=mode)
    sima2=ndimage.filters.gaussian_filter(ima2, [pxksz, pxksz], order=[0,0], mode=mode)
@@ -230,12 +230,12 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0
 
    ngood=np.size(good)
 
-   ssimv=ssim(sima1[good], sima2[good])
-   msev =mse(sima1[good], sima2[good])
+   ssimv=np.nan #ssim(sima1[good], sima2[good])
+   msev =np.nan #mse(sima1[good], sima2[good])
 
    circstats=[rvl, Z, V, pz, pv, myV, s_myV, meanphi, am, pear, ngood, ssimv, msev]
    corrframe=phi
-   
+
    return circstats, corrframe, sima1, sima2
 
    
@@ -254,7 +254,7 @@ def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., pxsz=1., 
 
    sf=3. #Number of pixels per kernel FWHM      
 
-   pxksz =ksz/pxsz
+   pxksz=(ksz/(2*np.sqrt(2.*np.log(2.))))/pxsz #gaussian_filter takes sigma instead of FWHM as input
    pxres =res/pxsz
 
    sz1=np.shape(frame1)
