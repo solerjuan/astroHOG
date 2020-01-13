@@ -7,11 +7,12 @@ sys.path.append('../')
 from astrohog3d import *
 
 import numpy as np
+from astropy.io import fits
 
-cube1=np.random.rand(64,64,64)
-cube2=np.random.rand(64,64,64)
+hdu=fits.open('../data/cube1.fits')
+cube1=hdu[0].data 
 
-circstats, corrframe, scube1, scube2 = HOGcorr_cubeLITE(cube1, cube2, ksz=3.0)
+circstats, corrframe, scube1, scube2 = HOGcorr_cubeLITE(cube1, cube1, ksz=3.0)
 
 import pdb; pdb.set_trace()
 

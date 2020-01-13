@@ -380,13 +380,13 @@ def HOGcorr_cube(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=
    #
    # OUTPUTS
    #
-
    print('Computing HOG correlation')
    print(z1max-z1min+1,z2max-z2min+1) 
 
    sf=3. #Number of pixels per kernel FWHM
    pxksz =ksz/pxsz
    pxres =res/pxsz
+  
    sz1=np.shape(cube1)
    sz2=np.shape(cube2)
 

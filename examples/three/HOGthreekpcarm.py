@@ -10,7 +10,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 sys.path.append('/Users/soler/Documents/PYTHON/astroHOG/')
-from pyastrohog import *
+from astrohog import *
 from rgbtools import *
 
 from astropy.wcs import WCS
@@ -195,7 +195,7 @@ def HOGthreekpcarm(vmin, vmax, ksz=1, suffix='', glonmin=12., glonmax=-12., Make
 # --------------------------------------------------------------------------------------------------------
 ksz=1 #arcsec
 
-vco0, d0 = HOGthreekpcarm(-120., 0., ksz=ksz, glonmin=12.,  glonmax=9., MakePlots=True)
+vco0, d0 = HOGthreekpcarm(-120., 0., ksz=ksz, glonmin=12.,  glonmax=-12., MakePlots=True)
 
 vco1, d1 = HOGthreekpcarm(-120., 0., ksz=ksz, glonmin=12.,  glonmax=9.)
 vco2, d2 = HOGthreekpcarm(-120., 0., ksz=ksz, glonmin=9.,   glonmax=6.)
