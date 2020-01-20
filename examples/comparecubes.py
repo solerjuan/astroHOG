@@ -16,4 +16,3 @@ circstats, corrframe, scube1, scube2 = HOGcorr_cubeLITE(cube1, cube1, ksz=3.0)
 
 import pdb; pdb.set_trace()
 
-
