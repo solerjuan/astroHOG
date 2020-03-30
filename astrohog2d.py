@@ -15,6 +15,8 @@ from congrid import *
 from scipy import ndimage
 from scipy import stats
 
+import matplotlib.pyplot as plt
+
 import pycircstat as circ
 from nose.tools import assert_equal, assert_true
 
@@ -216,18 +218,19 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0
 
    good=np.isfinite(phi).nonzero()
 
-   Zx, s_Zx, meanPhi = HOG_PRS(phi[good])
    rvl=circ.descriptive.resultant_vector_length(2.*phi[good], w=weights[good])
    can=circ.descriptive.mean(2.*phi[good], w=weights[good])/2.
    pz, Z = circ.tests.rayleigh(2.*phi[good],  w=weights[good])
    pv, V = circ.tests.vtest(2.*phi[good], 0., w=weights[good])
 
-   myV, s_myV, meanphi = HOG_PRS(2.*phi[good])
+   output=HOG_PRS(2.*phi[good], weights=weights[good])
+   myV=output['Zx'] 
+   s_myV=output['s_Zx'] 
+   meanphi=output['meanphi']
 
    am=HOG_AM(phi[good])
 
    pear, peap = stats.pearsonr(sima1[good], sima2[good])
-
    ngood=np.size(good)
 
    ssimv=np.nan #ssim(sima1[good], sima2[good])
@@ -312,7 +315,11 @@ def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., pxsz=1., 
          good=np.logical_and(np.isfinite(phi), intmask1 > 0).nonzero()
    else:
          good=np.isfinite(phi).nonzero()
-   Zx, s_Zx, meanPhi = HOG_PRS(phi[good])
+   #Zx, s_Zx, meanPhi = HOG_PRS(phi[good])
+   output=HOG_PRS(2.*phi[good], w=weights[good])
+   Zx=output['Zx']
+   s_Zx=output['s_Zx']
+   meanPhi=output['meanphi']
 
    return Zx, corrframe, smoothframe1
 
