@@ -3,7 +3,7 @@
 # This file is part of AstroHOG
 #
 # CONTACT: soler[AT]mpia.de
-# Copyright (C) 2013-2019 Juan Diego Soler
+# Copyright (C) 2013-2021 Juan Diego Soler
 #   
 #------------------------------------------------------------------------------;
 
@@ -19,9 +19,6 @@ import matplotlib.pyplot as plt
 
 import pycircstat as circ
 from nose.tools import assert_equal, assert_true
-
-from skimage import data, img_as_float
-from skimage.measure import compare_ssim as ssim
 
 from statests import * 
 
@@ -217,22 +214,31 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0
       phi[m2bad]=np.nan
 
    good=np.isfinite(phi).nonzero()
-
-   rvl=circ.descriptive.resultant_vector_length(2.*phi[good], w=weights[good])
-   can=circ.descriptive.mean(2.*phi[good], w=weights[good])/2.
-   pz, Z = circ.tests.rayleigh(2.*phi[good],  w=weights[good])
-   pv, V = circ.tests.vtest(2.*phi[good], 0., w=weights[good])
-
-   output=HOG_PRS(2.*phi[good], weights=weights[good])
-   myV=output['Zx'] 
-   s_myV=output['s_Zx'] 
-   meanphi=output['meanphi']
-
-   am=HOG_AM(phi[good])
-
-   pear, peap = stats.pearsonr(sima1[good], sima2[good])
    ngood=np.size(good)
 
+   if (ngood >= 2):
+      rvl=circ.descriptive.resultant_vector_length(2.*phi[good], w=weights[good])
+      can=circ.descriptive.mean(2.*phi[good], w=weights[good])/2.
+      pz, Z = circ.tests.rayleigh(2.*phi[good],  w=weights[good])
+      pv, V = circ.tests.vtest(2.*phi[good], 0., w=weights[good])
+
+      output=HOG_PRS(2.*phi[good], weights=weights[good])
+      myV=output['Zx'] 
+      s_myV=output['s_Zx'] 
+      meanphi=output['meanphi']
+
+      am=HOG_AM(phi[good])
+
+      pear, peap = stats.pearsonr(sima1[good], sima2[good])
+
+   else:
+      rvl=np.nan
+      Z=np.nan; pz=np.nan;
+      V=np.nan; pv=np.nan;
+      myV=np.nan; s_myV=np.nan;
+      meanphi=np.nan;
+      am=np.nan; pear=np.nan;  
+   
    ssimv=np.nan #ssim(sima1[good], sima2[good])
    msev =np.nan #mse(sima1[good], sima2[good])
 
