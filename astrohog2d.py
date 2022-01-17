@@ -78,11 +78,13 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
    sz2=np.shape(ima2)
 
    mruns1=nruns
-   if (s_ima1 == 0.):
+   #if (s_ima1 == 0.):
+   if np.all(s_ima1 == 0.):
       mruns1=1
 
    mruns2=nruns
-   if (s_ima2 == 0.):
+   #if (s_ima2 == 0.):
+   if np.all(s_ima2 == 0.):
       mruns2=1
 
    rvec=np.zeros(mruns1*mruns2)
@@ -91,6 +93,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
    amvec=np.zeros(mruns1*mruns2) 
 
    if (nruns > 0):
+      print("Running astroHOG Montecarlo ========================================")
       pbar = tqdm(total=mruns1*mruns2)
 
       for i in range(0,mruns1):
