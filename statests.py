@@ -3,9 +3,66 @@ astroHOG Statistical tests
 """
 
 import numpy as np
+from scipy.stats import circmean, circstd
 
 # ------------------------------------------------------------------------------------------------------------------------
-def HOG_PRS(phi, weights=None):
+def HOG_PRS(phi, weights=None, s_phi=None, nruns=1):
+   # Calculates the projected Rayleigh statistic of the distributions of angles phi.
+   #
+   # INPUTS
+   # phi      - angles between -pi/2 and pi/2
+   # weights  - statistical weights
+   #
+   # OUTPUTS
+   # Zx       - value of the projected Rayleigh statistic   
+   # s_Zx     - 
+   # meanPhi  -
+
+   if np.logical_or(s_phi is None, nruns<2):
+
+      output=HOG_PRSlite(phi, weights=weights)
+      return {'Z': output['Z'], 's_Z': output['s_Z'], 
+              'Zx': output['Zx'], 's_Zx': output['s_Zx'], 's_ZxMC': np.nan, 
+              'meanphi': output['meanphi'], 's_meanphi': np.nan, 
+              'mrv': output['mrv'], 's_mrv': np.nan}
+
+   else: 
+
+      arrZ=np.zeros(nruns)
+      arrs_Z=np.zeros(nruns)
+      arrZx=np.zeros(nruns)
+      arrs_Zx=np.zeros(nruns)   
+      arrmeanphi=np.zeros(nruns)
+      arrstdphi=np.zeros(nruns)
+      arrmrv=np.zeros(nruns)
+ 
+      for i in range(0,nruns):
+
+         inmaprand=np.random.normal(loc=phi, scale=s_phi)  
+         output=HOG_PRSlite(inmaprand, weights=weights)
+         arrZ[i]=output['Z']
+         arrs_Z[i]=output['s_Z']
+         arrZx[i]=output['Zx']
+         arrs_Zx[i]=output['s_Zx']
+         arrmeanphi[i]=output['meanphi']
+         arrstdphi[i]=output['stdphi']
+         arrmrv[i]=output['mrv']
+     
+      Z     =np.nanmean(arrZ)
+      s_Z   =np.nanmean(arrs_Z) 
+      Zx    =np.nanmean(arrZx)
+      s_Zx  =np.nanmean(arrs_Zx)
+      s_ZxMC=np.nanstd(arrZx) 
+      meanphi =circmean(arrmeanphi, low=-np.pi, high=np.pi)
+      s_meanphi=circstd(arrmeanphi, low=-np.pi, high=np.pi)  
+      mrv  =np.nanmean(arrmrv)
+      s_mrv=np.nanstd(arrmrv)
+     
+      return {'Z': Z, 's_Z': s_Z, 'Zx': Zx, 's_Zx': s_Zx, 's_ZxMC': s_ZxMC, 'meanphi': meanphi, 's_meanphi': s_meanphi, 'mrv': mrv, 's_mrv': s_mrv} 
+
+ 
+# ------------------------------------------------------------------------------------------------------------------------
+def HOG_PRSlite(phi, weights=None):
    # Calculates the projected Rayleigh statistic of the distributions of angles phi.
    #
    # INPUTS
@@ -36,10 +93,15 @@ def HOG_PRS(phi, weights=None):
    temp=np.sum(np.sin(angles)*np.sin(angles))
    s_Zy=np.sqrt((2.*temp-Zy*Zy)/np.size(angles))
 
-   meanPhi=0.5*np.arctan2(Zy, Zx)
+   Z=np.sqrt(Zx**2+Zy**2)
+   s_Z=np.sqrt(s_Zx**2+s_Zy**2)
 
+   meanphi=circmean(angles, low=-np.pi, high=np.pi)  #0.5*np.arctan2(Zy, Zx)
+   stdphi=circstd(angles, low=-np.pi, high=np.pi)
+
+   #import pdb; pdb.set_trace()
    #return Zx, s_Zx, meanPhi
-   return {'Zx': Zx, 's_Zx': s_Zx, 'meanphi': meanPhi, 'mrv': mrv}
+   return {'Z': Z, 's_Z': s_Z, 'Zx': Zx, 's_Zx': s_Zx, 'meanphi': meanphi, 'stdphi': stdphi,  'mrv': mrv}
 
 # ---------------------------------------------------------------------------------------------------------
 def HOG_AM(phi):

@@ -155,7 +155,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
    return circstats, corrframe, sima1, sima2
 
 
-# --------------------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------
 def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0., mask2=0., gradthres1=0., gradthres2=0., weights=None):
    """ Calculates the spatial correlation between im1 and im2 using the HOG method 
 
@@ -167,7 +167,9 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0
    s_ima2 : 
    pxsz :
    ksz : Size of the derivative kernel in the pixel size units
-   
+   mode: Specify how the input array is extended when the kernel overlaps the border of the map. 
+         Default: 'nearest'; The input is extended by replicating the last pixel.   
+ 
    Returns
    -------
     hogcorr :  
@@ -178,17 +180,26 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0
 
    """
 
+   # Check if the images match
    assert ima2.shape == ima1.shape, "Dimensions of ima2 and ima1 must match"
    sz1=np.shape(ima1) 
+   # Assign weights if none are specified
    if weights is None:
       weights=np.ones(sz1)
+   # Assign weights if the weights are all the same
    if (np.size(weights)==1): 
       uniweights=weights
-      weights=uniweights*np.ones(sz1) 
+      weights=uniweights*np.ones(sz1)
+   # Check if the provided weights match the image
    assert weights.shape == ima1.shape, "Dimensions of weights and ima1 must match" 
+
+   # Check if the masks match the image shape
+   assert mask1.shape == ima1.shape, "Dimensions of mask1 and ima1 must match"
+   assert mask2.shape == ima2.shape, "Dimensions of mask2 and ima2 must match"
 
    pxksz=(ksz/(2*np.sqrt(2.*np.log(2.))))/pxsz #gaussian_filter takes sigma instead of FWHM as input
 
+   # Calculate gradients
    sima1=ndimage.filters.gaussian_filter(ima1, [pxksz, pxksz], order=[0,0], mode=mode)
    sima2=ndimage.filters.gaussian_filter(ima2, [pxksz, pxksz], order=[0,0], mode=mode)
    dI1dx=ndimage.filters.gaussian_filter(ima1, [pxksz, pxksz], order=[0,1], mode=mode)
@@ -207,12 +218,19 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0
    phi[bad]=np.nan
  
    # Excluding masked gradients
-   if np.array_equal(np.shape(ima1), np.shape(mask1)):
+   if (np.size((mask1 > 0.).nonzero()) > 1):
       m1bad=(mask1 < 1.).nonzero()
       phi[m1bad]=np.nan
-   if np.array_equal(np.shape(ima2), np.shape(mask2)):
+   else:
+      print("No unmasked elements in ima1")
+      phi[:]=np.nan
+
+   if (np.size((mask2 > 0.).nonzero()) > 1):
       m2bad=(mask2 < 1.).nonzero()
       phi[m2bad]=np.nan
+   else:
+      print("No unmasked elements in ima2")
+      phi[:]=np.nan
 
    good=np.isfinite(phi).nonzero()
    ngood=np.size(good)
@@ -233,6 +251,7 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0
       pear, peap = stats.pearsonr(sima1[good], sima2[good])
 
    else:
+      print("WARNING: not enough pixels to compute astroHOG")
       rvl=np.nan
       Z=np.nan; pz=np.nan;
       V=np.nan; pv=np.nan;
