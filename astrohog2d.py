@@ -231,6 +231,9 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0
    else:
       print("No unmasked elements in ima2")
       phi[:]=np.nan
+   
+   if (np.size((mask1*mask2 > 0.).nonzero()) < 1):
+      phi[:]=np.nan
 
    good=np.isfinite(phi).nonzero()
    ngood=np.size(good)
