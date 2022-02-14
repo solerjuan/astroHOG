@@ -226,21 +226,21 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
    phi[bad]=np.nan
  
    # Excluding masked gradients
-   if (np.size((mask1 > 0.).nonzero()) > 1):
+   if (np.size((mask1.ravel() > 0.).nonzero()) > 1):
       m1bad=(mask1 < 1.).nonzero()
       phi[m1bad]=np.nan
    else:
       print("No unmasked elements in ima1")
       phi[:]=np.nan
-
-   if (np.size((mask2 > 0.).nonzero()) > 1):
+ 
+   if (np.size((mask2.ravel() > 0.).nonzero()) > 1):
       m2bad=(mask2 < 1.).nonzero()
       phi[m2bad]=np.nan
    else:
       print("No unmasked elements in ima2")
       phi[:]=np.nan
 
-   if (np.size((mask1*mask2 > 0.).nonzero()) < 1):
+   if (np.size((mask1.ravel()*mask2.ravel() > 0.).nonzero()) < 1):
       print("No unmasked elements in the joint mask")
       phi[:]=np.nan
 
