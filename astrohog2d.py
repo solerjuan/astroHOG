@@ -52,7 +52,7 @@ def imablockaverage(corrframe, nbx=7, nby=7, weight=1.):
    return vblocks
 
 # --------------------------------------------------------------------------------------------------------------------------------
-def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns=10, mask1=0., mask2=0., gradthres1=0., gradthres2=0., weights=None):
+def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns=10, mask1=None, mask2=None, gradthres1=0., gradthres2=0., weights=None):
    """ Calculates the spatial correlation between im1 and im2 using the HOG method and its confidence interval using Montecarlo sampling 
 
    Parameters
@@ -156,7 +156,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0., mask2=0., gradthres1=0., gradthres2=0., weights=None):
+def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=None, mask2=None, gradthres1=0., gradthres2=0., weights=None):
    """ Calculates the spatial correlation between im1 and im2 using the HOG method 
 
    Parameters
@@ -194,8 +194,16 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0
    assert weights.shape == ima1.shape, "Dimensions of weights and ima1 must match" 
 
    # Check if the masks match the image shape
-   assert mask1.shape == ima1.shape, "Dimensions of mask1 and ima1 must match"
-   assert mask2.shape == ima2.shape, "Dimensions of mask2 and ima2 must match"
+   if mask1 is None:
+      "Mask 1 not defined by the user"
+      mask1=np.ones_like(ima1)
+   else:
+      assert mask1.shape == ima1.shape, "Dimensions of mask1 and ima1 must match"
+   if mask2 is None:
+      "Mask 2 not defined by the user"
+      mask2=np.ones_like(ima2)
+   else:
+      assert mask2.shape == ima2.shape, "Dimensions of mask2 and ima2 must match"
 
    pxksz=(ksz/(2*np.sqrt(2.*np.log(2.))))/pxsz #gaussian_filter takes sigma instead of FWHM as input
 
@@ -231,8 +239,9 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=0
    else:
       print("No unmasked elements in ima2")
       phi[:]=np.nan
-   
+
    if (np.size((mask1*mask2 > 0.).nonzero()) < 1):
+      print("No unmasked elements in the joint mask")
       phi[:]=np.nan
 
    good=np.isfinite(phi).nonzero()
