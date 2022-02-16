@@ -26,6 +26,7 @@ from statests import *
 
 from tqdm import tqdm
 
+# ------------------------------------------------------------------------------------------------------------------
 CorrMapPair = collections.namedtuple('CorrMapPair', [
    'map1','map2',
    'pos1','pos2', 
@@ -184,8 +185,10 @@ def HOGcorr_ppvcubes(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., 
 
    pbar.close() 
 
-   return [rplane,zplane,vplane,s_rplane,s_zplane,s_vplane,rplane0,vplane0,amplane,s_amplane,pearplane,neleplane], corrcube, scube1, scube2
+   outcircstats={'RVL': rplane, 'Z': zplane, 'V': vplane, 'AM': amplane, 'meanphi': np.nan, 'pearsonr': pearplane, 'ngood': neleplane, 's_RVL': s_rplane, 's_Z': s_zplane, 's_V': s_vplane, 's_AM': s_amplane}
 
+   #return [rplane,zplane,vplane,s_rplane,s_zplane,s_vplane,rplane0,vplane0,amplane,s_amplane,pearplane,neleplane], corrcube, scube1, scube2
+   return outcircstats, corrcube, scube1, scube2    
 
 # ================================================================================================================
 def HOGcorr_cubeandpol(cube1, ex, ey, z1min, z1max, pxsz=1., ksz=1., res=1., mask1=0, mask2=0, wd=1, rotatepol=False, regrid=False, allow_huge=False):

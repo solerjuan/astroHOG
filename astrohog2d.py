@@ -137,7 +137,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
       print('Warning: uncertainties on the correlation parameters will not be provided')
       circstats, corrframe, sima1, sima2=HOGcorr_imaLITE(ima1, ima2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, mask1=mask1, mask2=mask2, weights=weights)
 
-      meanr=circstats['MRV']   
+      meanr=circstats['RVL']   
       meanz=circstats['Z'] 
       meanv=circstats['V']  
       am=   circstats['AM']
@@ -148,7 +148,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
       s_am =np.nan
       ngood=circstats['ngood']    
 
-   circstats={'RVL': rvl, 'Z': Z, 'V': V, 'AM': am, 'meanphi': meanphi, 'pearsonr': pear, 'ngood': ngood, 's_RVL': s_r, 's_Z': s_z, 's_V': s_v, 's_AM': s_am}
+   circstats={'RVL': meanr, 'Z': meanz, 'V': meanv, 'AM': am, 'meanphi': np.nan, 'pearsonr': pear, 'ngood': ngood, 's_RVL': s_r, 's_Z': s_z, 's_V': s_v, 's_AM': s_am}
    #circstats=[meanr, meanz, meanv, s_r, s_z, s_v, outr, outv, am, s_am, pear, ngood, ssimv, msev]
 
    return circstats, corrframe, sima1, sima2
