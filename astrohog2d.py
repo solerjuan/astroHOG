@@ -79,10 +79,12 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
 
    mruns1=nruns
    if np.all(s_ima1 == 0.):
+      print('Warning: ima1 standard deviation not provided')
       mruns1=1
 
    mruns2=nruns
    if np.all(s_ima2 == 0.):
+      print('Warning: ima2 standard deviation not provided')
       mruns2=1
 
    rvec=np.zeros(mruns1*mruns2)
@@ -105,52 +107,49 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
             else:           
                rand2=ima2
             circstats, corrframe, sima1, sima2=HOGcorr_imaLITE(rand1, rand2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, mask1=mask1, mask2=mask2, weights=weights)
-            rvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats[0]
-            zvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats[1]
-            vvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats[2]
-            amvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))]=circstats[8]
+            rvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats['RVL'] #circstats[0]
+            zvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats['Z']   #circstats[1]
+            vvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats['V']   #circstats[2]
+            amvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))]=circstats['AM']  #circstats[8]
 
             pbar.update()
 
       pbar.close()  
 
-      outr=circstats[0] 
-      outv=circstats[2]
+      outr=circstats['RVL'] #circstats[0] 
+      outv=circstats['V']   #circstats[2]
 
       meanr=np.mean(rvec)
       meanz=np.mean(zvec)
       meanv=np.mean(vvec)
       am=np.mean(amvec)
-      pear=circstats[9]     
+      pear=circstats['pearsonr']     
       s_r  =np.std(rvec)
       s_z  =np.std(zvec)
       s_v  =np.std(vvec)
       s_am =np.std(amvec)
 
-      ngood=circstats[10]
-      ssimv=circstats[11]
-      msev =circstats[12] 
+      ngood=circstats['ngood'] #circstats[10]
 
-   else: 
+   else:
+      
+      print('Montecarlo iterations disabled =============================')
+      print('Warning: uncertainties on the correlation parameters will not be provided')
       circstats, corrframe, sima1, sima2=HOGcorr_imaLITE(ima1, ima2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, mask1=mask1, mask2=mask2, weights=weights)
-      outr=circstats[0]
-      outv=circstats[2]
 
-      meanr=circstats[0]    
-      meanz=circstats[1]
-      meanv=circstats[2]
-      am=circstats[8]
-      pear=circstats[9]
-      s_r  =0.
-      s_z  =0.
-      s_v  =0.
-      s_am =0.
-   
-      ngood=circstats[10]    
-      ssimv=circstats[11]
-      msev =circstats[12]
- 
-   circstats=[meanr, meanz, meanv, s_r, s_z, s_v, outr, outv, am, s_am, pear, ngood, ssimv, msev]
+      meanr=circstats['MRV']   
+      meanz=circstats['Z'] 
+      meanv=circstats['V']  
+      am=   circstats['AM']
+      pear= circstats['pearsonr']
+      s_r  =np.nan
+      s_z  =np.nan
+      s_v  =np.nan
+      s_am =np.nan
+      ngood=circstats['ngood']    
+
+   circstats={'RVL': rvl, 'Z': Z, 'V': V, 'AM': am, 'meanphi': meanphi, 'pearsonr': pear, 'ngood': ngood, 's_RVL': s_r, 's_Z': s_z, 's_V': s_v, 's_AM': s_am}
+   #circstats=[meanr, meanz, meanv, s_r, s_z, s_v, outr, outv, am, s_am, pear, ngood, ssimv, msev]
 
    return circstats, corrframe, sima1, sima2
 
@@ -172,8 +171,16 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
  
    Returns
    -------
-    hogcorr :  
-    corrframe :
+    circstats:  Statistics describing the correlation between the input images.
+                RVL      - Resulting vector lenght. 
+                Z        - Rayleigh statistic.
+                V        - Projected Ratleigh statistic.
+                pearsonr - Pearson correlation coefficient.
+                ngood    - Number of pixels used for the correlation
+ 
+    corrframe : array containing the angles between the image gradients
+    sima1     : ima1 smoothed with a 2D Gaussian with the size of the derivative kernel
+    sima2     : ima2 smoothed with a 2D Gaussian with the size of the derivative kernel
 
    Examples
    --------
@@ -274,7 +281,8 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
    ssimv=np.nan #ssim(sima1[good], sima2[good])
    msev =np.nan #mse(sima1[good], sima2[good])
 
-   circstats=[rvl, Z, V, pz, pv, myV, s_myV, meanphi, am, pear, ngood, ssimv, msev]
+   #circstats=[rvl, Z, V, pz, pv, myV, s_myV, meanphi, am, pear, ngood, ssimv, msev]
+   circstats={'RVL': rvl, 'Z': Z, 'V': V, 'AM': am, 'meanphi': meanphi, 'pearsonr': pear, 'ngood': ngood}
    corrframe=phi
 
    return circstats, corrframe, sima1, sima2

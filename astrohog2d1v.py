@@ -161,25 +161,19 @@ def HOGcorr_ppvcubes(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., 
                circstats, corrframe, sframe1, sframe2 = HOGcorr_ima(frame1, frame2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, s_ima1=s_cube1, s_ima2=s_cube2, nruns=nruns, weights=weights)
 
          # circstats=[meanr, meanz, meanv, s_r, s_z, s_v, outr, outv, am, s_am]
-         rplane[i-z1min,k-z2min] =circstats[0]
-         zplane[i-z1min,k-z2min] =circstats[1]
-         vplane[i-z1min,k-z2min] =circstats[2]
-         amplane[i-z1min,k-z2min]=circstats[8]
+         rplane[i-z1min,k-z2min] =circstats['RVL']
+         zplane[i-z1min,k-z2min] =circstats['Z']
+         vplane[i-z1min,k-z2min] =circstats['V']
+         amplane[i-z1min,k-z2min]=circstats['AM']
 
-         pearplane[i-z1min,k-z2min]=circstats[10] 
-         neleplane[i-z1min,k-z2min]=circstats[11]
-
-         rplane0[i-z1min,k-z2min] =circstats[6]
-         vplane0[i-z1min,k-z2min] =circstats[7]
+         pearplane[i-z1min,k-z2min]=circstats['pearsonr'] 
+         neleplane[i-z1min,k-z2min]=circstats['ngood']
             
-         s_rplane[i-z1min,k-z2min] =circstats[3]
-         s_zplane[i-z1min,k-z2min] =circstats[4]
-         s_vplane[i-z1min,k-z2min] =circstats[5]
-         s_amplane[i-z1min,k-z2min]=circstats[9]
+         s_rplane[i-z1min,k-z2min] =circstats['s_RVL']
+         s_zplane[i-z1min,k-z2min] =circstats['s_Z']
+         s_vplane[i-z1min,k-z2min] =circstats['s_V']
+         s_amplane[i-z1min,k-z2min]=circstats['s_AM']
      
-         ssimplane[i-z1min,k-z2min]=circstats[12]
-         mseplane[i-z1min,k-z2min]=circstats[13]
-    
          corrcube[i-z1min,k-z2min,:,:]=corrframe     
   
          scube2[k,:,:]=sframe2
@@ -190,7 +184,7 @@ def HOGcorr_ppvcubes(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., 
 
    pbar.close() 
 
-   return [rplane,zplane,vplane,s_rplane,s_zplane,s_vplane,rplane0,vplane0,amplane,s_amplane,pearplane,neleplane,ssimplane,mseplane], corrcube, scube1, scube2
+   return [rplane,zplane,vplane,s_rplane,s_zplane,s_vplane,rplane0,vplane0,amplane,s_amplane,pearplane,neleplane], corrcube, scube1, scube2
 
 
 # ================================================================================================================
