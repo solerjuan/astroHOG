@@ -78,12 +78,22 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
    sz2=np.shape(ima2)
 
    mruns1=nruns
-   if np.all(s_ima1 == 0.):
+   if np.isscalar(s_ima1):
+      print('Warning: common standard deviation provided for the whole map')
+      s_ima1=np.copy(s_ima1)*np.ones_like(ima1)
+   assert s_ima1.shape==ima1.shape, "Dimensions of s_ima2 and ima2 must match"
+ 
+   if np.all(s_ima1==0.):
       print('Warning: ima1 standard deviation not provided')
       mruns1=1
 
    mruns2=nruns
-   if np.all(s_ima2 == 0.):
+   if np.isscalar(s_ima2):
+      print('Warning: common standard deviation provided for the whole map')
+      s_ima2=np.copy(s_ima2)*np.ones_like(ima2)
+   assert s_ima2.shape==ima2.shape, "Dimensions of s_ima2 and ima2 must match"
+
+   if np.all(s_ima2==0.):
       print('Warning: ima2 standard deviation not provided')
       mruns2=1
 
@@ -97,15 +107,9 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
       pbar = tqdm(total=mruns1*mruns2)
 
       for i in range(0,mruns1):
-         if (s_ima1 > 0.):
-            rand1=np.random.normal(loc=ima1, scale=s_ima1+0.*ima1)
-         else:
-            rand1=ima1                
+         rand1=np.random.normal(loc=ima1, scale=s_ima1)
          for k in range(0,mruns2):
-            if (s_ima1 > 0.):
-               rand2=np.random.normal(loc=ima2, scale=s_ima2+0.*ima2)
-            else:           
-               rand2=ima2
+            rand2=np.random.normal(loc=ima2, scale=s_ima2)
             circstats, corrframe, sima1, sima2=HOGcorr_imaLITE(rand1, rand2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, mask1=mask1, mask2=mask2, weights=weights)
             rvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats['RVL'] #circstats[0]
             zvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats['Z']   #circstats[1]
