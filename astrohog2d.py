@@ -24,11 +24,11 @@ from statests import *
 
 from tqdm import tqdm
 
-#  -------------------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------
 def mse(x, y):
     return np.linalg.norm(x - y)
 
-# --------------------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------
 def imablockaverage(corrframe, nbx=7, nby=7, weight=1.):
 
    sz=np.shape(corrframe)
@@ -39,8 +39,8 @@ def imablockaverage(corrframe, nbx=7, nby=7, weight=1.):
    sigvblocks=np.zeros([nbx,nby])
    vblocks=np.zeros([nbx,nby])
 
-   for i in range(0, np.size(limsx)-1):
-      for k in range(0, np.size(limsy)-1):
+   for i in range(0, np.size(limsx)):
+      for k in range(0, np.size(limsy)):
          phi=corrframe[limsx[i]:limsx[i+1],limsy[k]:limsy[k+1]]
          tempphi=phi.ravel()
          wghts=0.*tempphi[np.isfinite(tempphi).nonzero()]+weight
@@ -51,7 +51,7 @@ def imablockaverage(corrframe, nbx=7, nby=7, weight=1.):
 
    return vblocks
 
-# --------------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------
 def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns=10, mask1=None, mask2=None, gradthres1=0., gradthres2=0., weights=None):
    """ Calculates the spatial correlation between im1 and im2 using the HOG method and its confidence interval using Montecarlo sampling 
 
