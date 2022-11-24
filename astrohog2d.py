@@ -128,6 +128,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
       meanv=np.mean(vvec)
       am=np.mean(amvec)
       pear=circstats['pearsonr']     
+      ccor=circstats['crosscor']
       s_r  =np.std(rvec)
       s_z  =np.std(zvec)
       s_v  =np.std(vvec)
@@ -146,6 +147,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
       meanv=circstats['V']  
       am=   circstats['AM']
       pear= circstats['pearsonr']
+      ccor=circstats['crosscor']
       s_r  =np.nan
       s_z  =np.nan
       s_v  =np.nan
@@ -153,7 +155,6 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
       ngood=circstats['ngood']    
 
    circstats={'RVL': meanr, 'Z': meanz, 'V': meanv, 'AM': am, 'meanphi': np.nan, 'pearsonr': pear, 'ngood': ngood, 's_RVL': s_r, 's_Z': s_z, 's_V': s_v, 's_AM': s_am}
-   #circstats=[meanr, meanz, meanv, s_r, s_z, s_v, outr, outv, am, s_am, pear, ngood, ssimv, msev]
 
    return circstats, corrframe, sima1, sima2
 
@@ -271,7 +272,11 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
 
       am=HOG_AM(phi[good])
 
-      pear, peap = stats.pearsonr(sima1[good], sima2[good])
+      # Calculate Pearson correlation coefficient
+      #pear, peap = stats.pearsonr(sima1[good], sima2[good])
+      pear=PearsonCorrelationCoefficient(ima1[good],ima2[good])
+      # Calculate cross correlation
+      ccor=CrossCorrelation(ima1[good],ima2[good])
 
    else:
       print("WARNING: not enough pixels to compute astroHOG")
@@ -280,13 +285,14 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
       V=np.nan; pv=np.nan;
       myV=np.nan; s_myV=np.nan;
       meanphi=np.nan;
-      am=np.nan; pear=np.nan;  
-   
+      am=np.nan; 
+      pear=np.nan;  
+      ccor=np.nan;   
+
    ssimv=np.nan #ssim(sima1[good], sima2[good])
    msev =np.nan #mse(sima1[good], sima2[good])
 
-   #circstats=[rvl, Z, V, pz, pv, myV, s_myV, meanphi, am, pear, ngood, ssimv, msev]
-   circstats={'RVL': rvl, 'Z': Z, 'V': V, 'AM': am, 'meanphi': meanphi, 'pearsonr': pear, 'ngood': ngood}
+   circstats={'RVL': rvl, 'Z': Z, 'V': V, 'AM': am, 'meanphi': meanphi, 'pearsonr': pear, 'crosscor': ccor, 'ngood': ngood}
    corrframe=phi
 
    return circstats, corrframe, sima1, sima2

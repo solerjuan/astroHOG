@@ -120,4 +120,64 @@ def HOG_AM(phi):
 
    return am
 
+# ---------------------------------------------------------------------------------------------------------
+def CrossCorrelation(map1, map2, mask1=None, mask2=None):
+
+   # Calculate cross correlation
+   #
+   # INPUTS
+   # map1 
+   # map2
+   #
+   # OUTPUTS
+   # 
+
+   if (mask1 is None):
+      mask1=np.ones_like(map1)
+   if (mask2 is None):
+      mask2=np.ones_like(map2)
+
+   bad1=np.isnan(map1).nonzero()
+   mask1[bad1]=0.
+   bad2=np.isnan(map2).nonzero()
+   mask2[bad2]=0.
+
+   good=np.logical_and(mask1 > 0., mask2 > 0.).nonzero()
+
+   prod12=map1*map2
+   rho12=np.sum(prod12[good])/np.sqrt(np.sum(map1[good]**2)*np.sum(map2[good]**2))   
+
+   return rho12
+
+# ---------------------------------------------------------------------------------------------------------
+def PearsonCorrelationCoefficient(map1, map2, mask1=None, mask2=None):
+
+   # Calculate cross correlation
+   #
+   # INPUTS
+   # map1 
+   # map2
+   #
+   # OUTPUTS
+   # 
+
+   if (mask1 is None):
+      mask1=np.ones_like(map1)
+   if (mask2 is None):
+      mask2=np.ones_like(map2)
+
+   bad1=np.isnan(map1).nonzero()
+   mask1[bad1]=0.
+   bad2=np.isnan(map2).nonzero()
+   mask2[bad2]=0.
+
+   good=np.logical_and(mask1 > 0., mask2 > 0.).nonzero()
+
+   mean1=np.mean(map1[good])
+   mean2=np.mean(map2[good])
+
+   prod12=(map1-mean1)*(map2-mean2)
+   rho12=np.sum(prod12[good])/np.sqrt(np.sum((map1[good]-mean1)**2)*np.sum((map2[good]-mean2)**2))
+
+   return rho12
 
