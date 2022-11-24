@@ -154,7 +154,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
       s_am =np.nan
       ngood=circstats['ngood']    
 
-   circstats={'RVL': meanr, 'Z': meanz, 'V': meanv, 'AM': am, 'meanphi': np.nan, 'pearsonr': pear, 'ngood': ngood, 's_RVL': s_r, 's_Z': s_z, 's_V': s_v, 's_AM': s_am}
+   circstats={'RVL': meanr, 'Z': meanz, 'V': meanv, 'AM': am, 'meanphi': np.nan, 'pearsonr': pear, 'crosscor': ccor, 'ngood': ngood, 's_RVL': s_r, 's_Z': s_z, 's_V': s_v, 's_AM': s_am}
 
    return circstats, corrframe, sima1, sima2
 
