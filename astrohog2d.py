@@ -160,7 +160,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=None, mask2=None, gradthres1=0., gradthres2=0., weights=None):
+def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=None, mask2=None, gradthres1=0., gradthres2=0., weights=None, computejk=False):
    """ Calculates the spatial correlation between im1 and im2 using the HOG method 
 
    Parameters
