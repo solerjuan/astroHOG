@@ -262,14 +262,15 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
    if (ngood >= 2):
       rvl=circ.descriptive.resultant_vector_length(2.*phi[good], w=weights[good])
       can=circ.descriptive.mean(2.*phi[good], w=weights[good])/2.
-      pz, Z = circ.tests.rayleigh(2.*phi[good],  w=weights[good])
-      pv, V = circ.tests.vtest(2.*phi[good], 0., w=weights[good])
-
+      #pz, Z = circ.tests.rayleigh(2.*phi[good],  w=weights[good])
+      #pv, V = circ.tests.vtest(2.*phi[good], 0., w=weights[good])
+      
       output=HOG_PRS(2.*phi[good], weights=weights[good])
-      myV=output['Zx'] 
-      s_myV=output['s_Zx'] 
+      Z=output['Z']
+      V=output['Zx'] 
+      s_V=output['s_Zx'] 
       meanphi=output['meanphi']
-
+      
       am=HOG_AM(phi[good])
 
       # Calculate Pearson correlation coefficient
