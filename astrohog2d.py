@@ -39,8 +39,8 @@ def imablockaverage(corrframe, nbx=7, nby=7, weight=1.):
    sigvblocks=np.zeros([nbx,nby])
    vblocks=np.zeros([nbx,nby])
 
-   for i in range(0, np.size(limsx)):
-      for k in range(0, np.size(limsy)):
+   for i in range(0, np.size(limsx)-1):
+      for k in range(0, np.size(limsy)-1):
          phi=corrframe[limsx[i]:limsx[i+1],limsy[k]:limsy[k+1]]
          tempphi=phi.ravel()
          wghts=0.*tempphi[np.isfinite(tempphi).nonzero()]+weight
