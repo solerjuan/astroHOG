@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 #
-# This file is part of AstroHOG
+# This file is part of astroHOG
 #
-# CONTACT: soler[AT]mpia.de
-# Copyright (C) 2013-2021 Juan Diego Soler
+# CONTACT: juandiegosolerp[at]gmail.com
+# Copyright (C) 2017-2023 Juan Diego Soler
 #   
 #------------------------------------------------------------------------------;
 
@@ -17,7 +17,6 @@ from scipy import stats
 
 import matplotlib.pyplot as plt
 
-import pycircstat as circ
 from nose.tools import assert_equal, assert_true
 
 from statests import * 
@@ -44,8 +43,8 @@ def imablockaverage(corrframe, nbx=7, nby=7, weight=1.):
          phi=corrframe[limsx[i]:limsx[i+1],limsy[k]:limsy[k+1]]
          tempphi=phi.ravel()
          wghts=0.*tempphi[np.isfinite(tempphi).nonzero()]+weight
-         pz, Zx = circ.tests.vtest(2.*tempphi[np.isfinite(tempphi).nonzero()],0.,w=wghts)
-         vblocks[i,k] = Zx
+         output=HOG_PRS(2.*tempphi[np.isfinite(tempphi).nonzero()], weights=wghts)
+         vblocks[i,k]=output['Zx']
 
    imaxb, jmaxb = (vblocks==np.max(vblocks)).nonzero()
 
@@ -97,10 +96,35 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
       print('Warning: ima2 standard deviation not provided')
       mruns2=1
 
+   # Circular statistic outputs of orientation between image gradients
    rvec=np.zeros(mruns1*mruns2)
    zvec=np.zeros(mruns1*mruns2)
    vvec=np.zeros(mruns1*mruns2)
-   amvec=np.zeros(mruns1*mruns2) 
+   meanphivec=np.zeros(mruns1*mruns2)
+
+    # Circular statistic outputs of directions between image gradients 
+   rdvec=np.zeros(mruns1*mruns2)
+   zdvec=np.zeros(mruns1*mruns2)
+   vdvec=np.zeros(mruns1*mruns2)
+   meanphidvec=np.zeros(mruns1*mruns2)   
+
+   # Correlation statistics 
+   pearvec=np.zeros(mruns1*mruns2)
+   ccorvec=np.zeros(mruns1*mruns2)
+
+   # Outputs ---------------------------------------------------------------------
+   meanr=np.nan; s_r=np.nan;
+   meanz=np.nan; s_z=np.nan;
+   meanv=np.nan; s_v=np.nan; 
+   meanphi=np.nan; s_meanphi=np.nan;
+ 
+   meanrd=np.nan; s_rd=np.nan;
+   meanzd=np.nan; s_zd=np.nan;
+   meanvd=np.nan; s_vd=np.nan;
+   meanphid=np.nan; s_meanphid=np.nan;
+  
+   meanpear=np.nan; s_meanpear=np.nan 
+   meanccor=np.nan; s_meanccor=np.nan
 
    if (nruns > 0):
       print("Running astroHOG Montecarlo ========================================")
@@ -110,51 +134,71 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
          rand1=np.random.normal(loc=ima1, scale=s_ima1)
          for k in range(0,mruns2):
             rand2=np.random.normal(loc=ima2, scale=s_ima2)
-            circstats, corrframe, sima1, sima2=HOGcorr_imaLITE(rand1, rand2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, mask1=mask1, mask2=mask2, weights=weights)
-            rvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats['RVL'] #circstats[0]
-            zvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats['Z']   #circstats[1]
-            vvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))] =circstats['V']   #circstats[2]
-            amvec[np.ravel_multi_index((i, k), dims=(mruns1,mruns2))]=circstats['AM']  #circstats[8]
+
+            circstats, corrframe, sima1, sima2 = HOGcorr_imaLITE(rand1, rand2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, mask1=mask1, mask2=mask2, weights=weights)
+
+            rvec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['RVL']
+            zvec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['Z']
+            vvec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['V']
+            meanphivec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['meanphi']
+
+            rdvec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['RVLd']
+            zdvec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['Zd']
+            vdvec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['Vd']
+            meanphidvec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['meanphid']
+
+            pearvec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['pearsonr']
+            ccorvec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['crosscor']   
 
             pbar.update()
 
       pbar.close()  
 
-      outr=circstats['RVL'] #circstats[0] 
-      outv=circstats['V']   #circstats[2]
+      meanr=np.mean(rvec); s_r=np.std(rvec)
+      meanz=np.mean(zvec); s_z=np.std(zvec)
+      meanv=np.mean(vvec); s_v=np.std(vvec)
+      output=HOG_PRS(meanphivec)
+      meanphi=output['meanphi']; s_meanphi=output['s_meanphi'];
 
-      meanr=np.mean(rvec)
-      meanz=np.mean(zvec)
-      meanv=np.mean(vvec)
-      am=np.mean(amvec)
-      pear=circstats['pearsonr']     
-      ccor=circstats['crosscor']
-      s_r  =np.std(rvec)
-      s_z  =np.std(zvec)
-      s_v  =np.std(vvec)
-      s_am =np.std(amvec)
+      meanrd=np.mean(rdvec); s_rd=np.std(rdvec)
+      meanzd=np.mean(zdvec); s_zd=np.std(zdvec)
+      meanvd=np.mean(vdvec); s_vd=np.std(vdvec)
+      output=HOG_PRS(meanphidvec)
+      meanphid=output['meanphi']; s_meanphid=output['s_meanphi'];
 
-      ngood=circstats['ngood'] #circstats[10]
+      meanpear=np.mean(pearvec); s_pear=np.std(pearvec);     
+      meanccor=np.mean(ccorvec); s_ccor=np.std(ccorvec);
+
+      ngood=circstats['ngood']
 
    else:
       
       print('Montecarlo iterations disabled =============================')
       print('Warning: uncertainties on the correlation parameters will not be provided')
-      circstats, corrframe, sima1, sima2=HOGcorr_imaLITE(ima1, ima2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, mask1=mask1, mask2=mask2, weights=weights)
+      circstats, corrframe, sima1, sima2 = HOGcorr_imaLITE(ima1, ima2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, mask1=mask1, mask2=mask2, weights=weights)
 
-      meanr=circstats['RVL']   
-      meanz=circstats['Z'] 
-      meanv=circstats['V']  
-      am=   circstats['AM']
-      pear= circstats['pearsonr']
-      ccor=circstats['crosscor']
-      s_r  =np.nan
-      s_z  =np.nan
-      s_v  =np.nan
-      s_am =np.nan
+      meanr=circstats['RVL']; s_r=np.nan
+      meanz=circstats['Z'];   s_z=np.nan
+      meanv=circstats['V'];   s_v=np.nan  
+      meanphi=circstats['meanphi']; s_meanphi=np.nan
+ 
+      meanrd=circstats['RVLd']; s_rd=np.nan
+      meanzd=circstats['Zd'];   s_zd=np.nan
+      meanvd=circstats['Vd'];   s_vd=np.nan
+      meanphid=circstats['meanphid']; s_meanphid=np.nan
+
+      meanpear=circstats['pearsonr']; s_pear=np.nan
+      meanccor=circstats['crosscor']; s_ccor=np.nan
+
       ngood=circstats['ngood']    
 
-   circstats={'RVL': meanr, 'Z': meanz, 'V': meanv, 'AM': am, 'meanphi': np.nan, 'pearsonr': pear, 'crosscor': ccor, 'ngood': ngood, 's_RVL': s_r, 's_Z': s_z, 's_V': s_v, 's_AM': s_am}
+
+   circstats={'RVL': meanr, 'Z': meanz, 'V': meanv, 'meanphi': meanphi,
+              's_RVL': s_r, 's_Z': s_z, 's_V': s_v, 's_meanphi': s_meanphi,
+              'RVLd': meanrd, 'Zd': meanzd, 'Vd': meanvd, 'meanphid': meanphid,
+              's_RVLd': s_rd, 's_Zd': s_zd, 's_Vd': s_vd, 's_meanphid': s_meanphid,
+              'pearsonr': meanpear, 's_pearsonr': s_pear, 'crosscor': meanccor, 's_crosscor': s_ccor, 
+              'ngood': ngood}
 
    return circstats, corrframe, sima1, sima2
 
@@ -259,41 +303,55 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
    good=np.isfinite(phi).nonzero()
    ngood=np.size(good)
 
+   # Circular statistic outputs of orientation between image gradients
+   rvl=np.nan # Resulting vector length (rvl)
+   Z=np.nan; # Rayleigh statistic 
+   V=np.nan; # Projected Rayleigh statistic 
+   meanphi=np.nan; # Mean orientation angle
+   s_meanphi=np.nan;
+ 
+   # Circular statistic outputs of directions between image gradients  
+   rvld=np.nan # Resulting vector length (rvl)
+   Zd=np.nan; # Rayleigh statistic 
+   Vd=np.nan; # Projected Rayleigh statistic 
+   meanphid=np.nan; # Mean orientation angle
+   s_meanphid=np.nan;
+
+   # Correlation statistics 
+   pear=np.nan; # Pearson correlation coefficient 
+   ccor=np.nan; # Crosscorrelation 
+
    if (ngood >= 2):
-      rvl=circ.descriptive.resultant_vector_length(2.*phi[good], w=weights[good])
-      can=circ.descriptive.mean(2.*phi[good], w=weights[good])/2.
-      #pz, Z = circ.tests.rayleigh(2.*phi[good],  w=weights[good])
-      #pv, V = circ.tests.vtest(2.*phi[good], 0., w=weights[good])
-      
+
+      # Calculate orientation statistics between image gradients 
       output=HOG_PRS(2.*phi[good], weights=weights[good])
+      rvl=output['mrv']
       Z=output['Z']
       V=output['Zx'] 
       s_V=output['s_Zx'] 
       meanphi=output['meanphi']
-      
-      am=HOG_AM(phi[good])
-
+ 
+      # Calculate direction statistics between image gradients 
+      output=HOG_PRS(phi[good], weights=weights[good])
+      rvld=output['mrv']
+      Zd=output['Z']
+      Vd=output['Zx']
+      s_Vd=output['s_Zx']
+      meanphid=output['meanphi']     
+ 
       # Calculate Pearson correlation coefficient
-      #pear, peap = stats.pearsonr(sima1[good], sima2[good])
-      pear=PearsonCorrelationCoefficient(ima1[good],ima2[good])
+      pear=PearsonCorrelationCoefficient(ima1[good], ima2[good])
+
       # Calculate cross correlation
-      ccor=CrossCorrelation(ima1[good],ima2[good])
+      ccor=CrossCorrelation(ima1[good], ima2[good])
 
    else:
+
       print("WARNING: not enough pixels to compute astroHOG")
-      rvl=np.nan
-      Z=np.nan; pz=np.nan;
-      V=np.nan; pv=np.nan;
-      myV=np.nan; s_myV=np.nan;
-      meanphi=np.nan;
-      am=np.nan; 
-      pear=np.nan;  
-      ccor=np.nan;   
 
-   ssimv=np.nan #ssim(sima1[good], sima2[good])
-   msev =np.nan #mse(sima1[good], sima2[good])
-
-   circstats={'RVL': rvl, 'Z': Z, 'V': V, 'AM': am, 'meanphi': meanphi, 'pearsonr': pear, 'crosscor': ccor, 'ngood': ngood}
+   circstats={'RVL': rvl, 'Z': Z, 'V': V, 'meanphi': meanphi, 
+              'RVLd': rvld, 'Zd': Zd, 'Vd': Vd, 'meanphid': meanphid, 
+	      'pearsonr': pear, 'crosscor': ccor, 'ngood': ngood}
    corrframe=phi
 
    return circstats, corrframe, sima1, sima2

@@ -1,6 +1,11 @@
+#!/usr/bin/env python
+#
+# This file is part of astroHOG
+#     
+# CONTACT: juandiegosolerp[at]gmail.com
+# Copyright (C) 2017-2023 Juan Diego Soler
+#
 # Example of the comparison of two data cubes using the astroHOG 
-# 
-# Prepared by Juan D. Soler (juandiegosoler@gmail.com)
 
 import sys
 sys.path.append('../')

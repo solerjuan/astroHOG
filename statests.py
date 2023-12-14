@@ -1,3 +1,10 @@
+# #!/usr/bin/env python
+#
+# This file is part of astroHOG
+#
+# CONTACT: juandiegosolerp[at]gmail.com
+# Copyright (C) 2017-2023 Juan Diego Soler
+
 """
 astroHOG Statistical tests
 """
@@ -5,7 +12,7 @@ astroHOG Statistical tests
 import numpy as np
 from scipy.stats import circmean, circstd
 
-# ------------------------------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------
 def HOG_PRS(phi, weights=None, s_phi=None, nruns=1):
    # Calculates the projected Rayleigh statistic of the distributions of angles phi.
    #
@@ -60,7 +67,6 @@ def HOG_PRS(phi, weights=None, s_phi=None, nruns=1):
      
       return {'Z': Z, 's_Z': s_Z, 'Zx': Zx, 's_Zx': s_Zx, 's_ZxMC': s_ZxMC, 'meanphi': meanphi, 's_meanphi': s_meanphi, 'mrv': mrv, 's_mrv': s_mrv} 
 
- 
 # ------------------------------------------------------------------------------------------------------------------------
 def HOG_PRSlite(phi, weights=None):
    # Calculates the projected Rayleigh statistic of the distributions of angles phi.
@@ -180,4 +186,5 @@ def PearsonCorrelationCoefficient(map1, map2, mask1=None, mask2=None):
    rho12=np.sum(prod12[good])/np.sqrt(np.sum((map1[good]-mean1)**2)*np.sum((map2[good]-mean2)**2))
 
    return rho12
+
 

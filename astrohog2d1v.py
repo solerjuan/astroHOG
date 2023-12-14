@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 #
-# This file is part of AstroHOG
+# This file is part of astroHOG
 #
-# CONTACT: soler[AT]mpia.de
-# Copyright (C) 2013-2017 Juan Diego Soler
+# CONTACT: juandiegosolerp[at]gmail.com
+# Copyright (C) 2017-2023 Juan Diego Soler
 #   
 #------------------------------------------------------------------------------;
 
@@ -13,7 +13,6 @@ from astropy.convolution import convolve_fft
 from astropy.convolution import Gaussian2DKernel
 from scipy import ndimage
 
-import pycircstat as circ
 from nose.tools import assert_equal, assert_true
 
 import matplotlib.pyplot as plt
@@ -116,26 +115,25 @@ def HOGcorr_ppvcubes(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., 
   
    sz1=np.shape(cube1)
    sz2=np.shape(cube2)
+ 
+   # Circular statistic outputs of orientation between image gradients
+   rplane=np.zeros([z1max+1-z1min, z2max+1-z2min]); s_rplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
+   zplane=np.zeros([z1max+1-z1min, z2max+1-z2min]); s_zplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
+   vplane=np.zeros([z1max+1-z1min, z2max+1-z2min]); s_vplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
+   meanphiplane=np.zeros([z1max+1-z1min, z2max+1-z2min]); s_meanphiplane=np.zeros([z1max+1-z1min, z2max+1-z2min]) 
 
-   rplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
-   zplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
-   vplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
-   amplane=np.zeros([z1max+1-z1min, z2max+1-z2min])   
+   # Circular statistic outputs of directions between image gradients   
+   rdplane=np.zeros([z1max+1-z1min, z2max+1-z2min]); s_rdplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
+   zdplane=np.zeros([z1max+1-z1min, z2max+1-z2min]); s_zdplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
+   vdplane=np.zeros([z1max+1-z1min, z2max+1-z2min]); s_vdplane=np.zeros([z1max+1-z1min, z2max+1-z2min]) 
+   meanphidplane=np.zeros([z1max+1-z1min, z2max+1-z2min]); s_meanphidplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
 
-   pearplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
+   # Correlation statistics  
+   pearplane=np.zeros([z1max+1-z1min, z2max+1-z2min]); s_pearplane=np.zeros([z1max+1-z1min, z2max+1-z2min]);
+   ccorplane=np.zeros([z1max+1-z1min, z2max+1-z2min]); s_ccorplane=np.zeros([z1max+1-z1min, z2max+1-z2min]);
    neleplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
  
-   ssimplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
-   mseplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
-
-   rplane0=np.zeros([z1max+1-z1min, z2max+1-z2min])
-   vplane0=np.zeros([z1max+1-z1min, z2max+1-z2min]) 
-
-   s_rplane=np.zeros([z1max+1-z1min, z2max+1-z2min]) 
-   s_zplane=np.zeros([z1max+1-z1min, z2max+1-z2min]) 
-   s_vplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
-   s_amplane=np.zeros([z1max+1-z1min, z2max+1-z2min])
-
+   # -----------------------------------------------------------------
    corrframe=np.zeros([sz1[1],sz1[2]]) 
    scube1=np.zeros(sz1)
    scube2=np.zeros(sz2)
@@ -161,20 +159,23 @@ def HOGcorr_ppvcubes(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., 
          else:
                circstats, corrframe, sframe1, sframe2 = HOGcorr_ima(frame1, frame2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, s_ima1=s_cube1, s_ima2=s_cube2, nruns=nruns, weights=weights)
 
-         # circstats=[meanr, meanz, meanv, s_r, s_z, s_v, outr, outv, am, s_am]
-         rplane[i-z1min,k-z2min] =circstats['RVL']
-         zplane[i-z1min,k-z2min] =circstats['Z']
-         vplane[i-z1min,k-z2min] =circstats['V']
-         amplane[i-z1min,k-z2min]=circstats['AM']
+         rplane[i-z1min,k-z2min] =circstats['RVL']; s_rplane[i-z1min,k-z2min] =circstats['s_RVL']
+         zplane[i-z1min,k-z2min] =circstats['Z'];   s_zplane[i-z1min,k-z2min] =circstats['s_Z']
+         vplane[i-z1min,k-z2min] =circstats['V'];   s_vplane[i-z1min,k-z2min] =circstats['s_V']
+         meanphiplane[i-z1min,k-z2min] =circstats['meanphi']; s_meanphiplane[i-z1min,k-z2min] =circstats['s_meanphi']
+
+         rdplane[i-z1min,k-z2min] =circstats['RVLd']; s_rdplane[i-z1min,k-z2min] =circstats['s_RVLd']
+         zdplane[i-z1min,k-z2min] =circstats['Zd'];   s_zdplane[i-z1min,k-z2min] =circstats['s_Zd']
+         vdplane[i-z1min,k-z2min] =circstats['Vd'];   s_vdplane[i-z1min,k-z2min] =circstats['s_Vd']  
+         meanphidplane[i-z1min,k-z2min] =circstats['meanphid']; s_meanphidplane[i-z1min,k-z2min] =circstats['s_meanphid']
 
          pearplane[i-z1min,k-z2min]=circstats['pearsonr'] 
+         s_pearplane[i-z1min,k-z2min]=circstats['s_pearsonr'] 
+         ccorplane[i-z1min,k-z2min]=circstats['crosscor']  
+         s_ccorplane[i-z1min,k-z2min]=circstats['s_crosscor']
+
          neleplane[i-z1min,k-z2min]=circstats['ngood']
             
-         s_rplane[i-z1min,k-z2min] =circstats['s_RVL']
-         s_zplane[i-z1min,k-z2min] =circstats['s_Z']
-         s_vplane[i-z1min,k-z2min] =circstats['s_V']
-         s_amplane[i-z1min,k-z2min]=circstats['s_AM']
-     
          corrcube[i-z1min,k-z2min,:,:]=corrframe     
   
          scube2[k,:,:]=sframe2
@@ -185,9 +186,14 @@ def HOGcorr_ppvcubes(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., 
 
    pbar.close() 
 
-   outcircstats={'RVL': rplane, 'Z': zplane, 'V': vplane, 'AM': amplane, 'meanphi': np.nan, 'pearsonr': pearplane, 'ngood': neleplane, 's_RVL': s_rplane, 's_Z': s_zplane, 's_V': s_vplane, 's_AM': s_amplane}
+   outcircstats={'RVL': rplane, 'Z': zplane, 'V': vplane, 'meanphi': meanphiplane, 
+                 's_RVL': s_rplane, 's_Z': s_zplane, 's_V': s_vplane, 's_meanphi': s_meanphiplane,
+                 'RVLd': rdplane, 'Zd': zdplane, 'Vd': vdplane, 'meanphid': meanphidplane,
+                 's_RVLd': s_rdplane, 's_Zd': s_zdplane, 's_Vd': s_vdplane, 's_meanphid': s_meanphidplane,
+                 'pearsonr': pearplane, 's_pearsonr': s_pearplane,
+                 'crosscor': ccorplane, 's_crosscor': s_ccorplane,  
+                 'ngood': neleplane}
 
-   #return [rplane,zplane,vplane,s_rplane,s_zplane,s_vplane,rplane0,vplane0,amplane,s_amplane,pearplane,neleplane], corrcube, scube1, scube2
    return outcircstats, corrcube, scube1, scube2    
 
 # ================================================================================================================

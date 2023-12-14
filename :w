@@ -63,18 +63,19 @@ print('Circular statistics for gradient orientations ==================')
 print('Mean resultant vector (r)        ', circstats['RVL'])
 print('Rayleigh statistic (Z)           ', circstats['Z'])
 print('Projected Rayleigh statistic (V) ', circstats['V'])
-print('Mean orientation angle           ', np.round(np.rad2deg(circstats['meanphi']),2), ' deg')
+print('Mean orientation angle',            np.round(np.rad2deg(circstats['meanphi']),2), ' deg'))
 
 print('Circular statistics for gradient directions ==================')
 print('Mean resultant vector (r)        ', circstats['RVLd'])
 print('Rayleigh statistic (Z)           ', circstats['Zd'])
 print('Projected Rayleigh statistic (V) ', circstats['Vd'])
-print('Mean orientation angle           ', np.round(np.rad2deg(circstats['meanphid']),2), ' deg')
+print('Mean orientation angle',            np.round(np.rad2deg(circstats['meanphid'],2), ' deg'))
 
 print('Correlation statistics =================================')
 print('Pearson correlation coefficient  ', circstats['pearsonr'])
 print('Cross correlation                ', circstats['crosscor'])
 print('Number of gradient pairs         ', circstats['ngood'])
+import pdb; pdb.set_trace()
 
 # Calculate the relative orientation angles and uncertainties using standard deviation values
 circstats, corrframe, smoothframe1, smoothframe2 = HOGcorr_ima(image1, image2, ksz=ksz, mask1=mask1, mask2=mask2, s_ima1=0.1*np.nanmin(image1), s_ima2=0.1*np.nanmin(image2), nruns=3)
