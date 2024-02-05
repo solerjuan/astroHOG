@@ -11,6 +11,7 @@ astroHOG Statistical tests
 
 import numpy as np
 from scipy.stats import circmean, circstd
+import pycircstat
 
 # -------------------------------------------------------------------------------------------------------
 def HOG_PRS(phi, weights=None, s_phi=None, nruns=1):
@@ -31,10 +32,11 @@ def HOG_PRS(phi, weights=None, s_phi=None, nruns=1):
       return {'Z': output['Z'], 's_Z': output['s_Z'], 
               'Zx': output['Zx'], 's_Zx': output['s_Zx'], 's_ZxMC': np.nan, 
               'meanphi': output['meanphi'], 's_meanphi': np.nan, 
-              'mrv': output['mrv'], 's_mrv': np.nan}
+              'mrv': output['mrv'], 's_mrv': np.nan, 'ngood': output['ngood']}
 
    else: 
 
+      arrngood=np.zeros(nruns)
       arrZ=np.zeros(nruns)
       arrs_Z=np.zeros(nruns)
       arrZx=np.zeros(nruns)
@@ -47,6 +49,7 @@ def HOG_PRS(phi, weights=None, s_phi=None, nruns=1):
 
          inmaprand=np.random.normal(loc=phi, scale=s_phi)  
          output=HOG_PRSlite(inmaprand, weights=weights)
+         arrngood[i]=output['ngood']
          arrZ[i]=output['Z']
          arrs_Z[i]=output['s_Z']
          arrZx[i]=output['Zx']
@@ -54,7 +57,8 @@ def HOG_PRS(phi, weights=None, s_phi=None, nruns=1):
          arrmeanphi[i]=output['meanphi']
          arrstdphi[i]=output['stdphi']
          arrmrv[i]=output['mrv']
-     
+    
+      ngood=np.nanmean(arrngood)
       Z     =np.nanmean(arrZ)
       s_Z   =np.nanmean(arrs_Z) 
       Zx    =np.nanmean(arrZx)
@@ -65,7 +69,7 @@ def HOG_PRS(phi, weights=None, s_phi=None, nruns=1):
       mrv  =np.nanmean(arrmrv)
       s_mrv=np.nanstd(arrmrv)
      
-      return {'Z': Z, 's_Z': s_Z, 'Zx': Zx, 's_Zx': s_Zx, 's_ZxMC': s_ZxMC, 'meanphi': meanphi, 's_meanphi': s_meanphi, 'mrv': mrv, 's_mrv': s_mrv} 
+      return {'Z': Z, 's_Z': s_Z, 'Zx': Zx, 's_Zx': s_Zx, 's_ZxMC': s_ZxMC, 'meanphi': meanphi, 's_meanphi': s_meanphi, 'mrv': mrv, 's_mrv': s_mrv, 'ngood': ngood} 
 
 # ------------------------------------------------------------------------------------------------------------------------
 def HOG_PRSlite(phi, weights=None):
@@ -89,13 +93,14 @@ def HOG_PRSlite(phi, weights=None):
    circY=np.sum(weights*np.sin(angles))/np.sum(weights)
    mrv=np.sqrt(circX**2+circY**2)
 
-   Zx=np.sum(weights*np.cos(angles))/np.sqrt(np.sum(weights)/2.)
-   #Zx=np.sum(np.cos(angles))/np.sqrt(np.size(angles)/2.)
+   #p0, Zx0=pycircstat.tests.vtest(angles, 0., w=weights)
+   #print("Zx0", Zx0/np.sqrt(np.sum(weights)/2.)) # Too match the Jow et al. (2018) results
+   Zx=np.sum(weights*np.cos(angles))/np.sqrt(np.sum(weights**2)/2.)
+   #print("Zx", Zx)
    temp=np.sum(np.cos(angles)*np.cos(angles))
    s_Zx=np.sqrt((2.*temp-Zx*Zx)/np.size(angles))
 
-   Zy=np.sum(weights*np.sin(angles))/np.sqrt(np.sum(weights)/2.)
-   #Zy=np.sum(np.sin(angles))/np.sqrt(np.size(angles)/2.)
+   Zy=np.sum(weights*np.sin(angles))/np.sqrt(np.sum(weights**2)/2.)
    temp=np.sum(np.sin(angles)*np.sin(angles))
    s_Zy=np.sqrt((2.*temp-Zy*Zy)/np.size(angles))
 
@@ -105,9 +110,11 @@ def HOG_PRSlite(phi, weights=None):
    meanphi=circmean(angles, low=-np.pi, high=np.pi)  #0.5*np.arctan2(Zy, Zx)
    stdphi=circstd(angles, low=-np.pi, high=np.pi)
 
+   ngood=float(np.size(angles)) 
+
    #import pdb; pdb.set_trace()
    #return Zx, s_Zx, meanPhi
-   return {'Z': Z, 's_Z': s_Z, 'Zx': Zx, 's_Zx': s_Zx, 'meanphi': meanphi, 'stdphi': stdphi,  'mrv': mrv}
+   return {'Z': Z, 's_Z': s_Z, 'Zx': Zx, 's_Zx': s_Zx, 'meanphi': meanphi, 'stdphi': stdphi, 'mrv': mrv, 'ngood': ngood}
 
 # ---------------------------------------------------------------------------------------------------------
 def HOG_AM(phi):

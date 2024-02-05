@@ -51,7 +51,7 @@ def imablockaverage(corrframe, nbx=7, nby=7, weight=1.):
    return vblocks
 
 # ------------------------------------------------------------------------------------------------------------------
-def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns=10, mask1=None, mask2=None, gradthres1=0., gradthres2=0., weights=None):
+def HOGcorr_ima(ima1, ima2, s_ima1=None, s_ima2=None, pxsz=1., ksz=1., res=1., nruns=0, mask1=None, mask2=None, gradthres1=None, gradthres2=None, weights=None):
    """ Calculates the spatial correlation between im1 and im2 using the HOG method and its confidence interval using Montecarlo sampling 
 
    Parameters
@@ -76,30 +76,34 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
    sz1=np.shape(ima1)
    sz2=np.shape(ima2)
 
-   mruns1=nruns
-   if np.isscalar(s_ima1):
-      print('Warning: common standard deviation provided for the whole map')
-      s_ima1=np.copy(s_ima1)*np.ones_like(ima1)
-   assert s_ima1.shape==ima1.shape, "Dimensions of s_ima2 and ima2 must match"
- 
-   if np.all(s_ima1==0.):
+   if (s_ima1 is None):
       print('Warning: ima1 standard deviation not provided')
-      mruns1=1
+      mruns1=0
+   else:
+      if np.isscalar(s_ima1):
+         print('Warning: common standard deviation provided for the whole map')
+         s_ima1=np.copy(s_ima1)*np.ones_like(ima1)
+      assert s_ima1.shape==ima1.shape, "Dimensions of s_ima1 and ima2 must match"
+      mruns1=nruns
 
-   mruns2=nruns
-   if np.isscalar(s_ima2):
-      print('Warning: common standard deviation provided for the whole map')
-      s_ima2=np.copy(s_ima2)*np.ones_like(ima2)
-   assert s_ima2.shape==ima2.shape, "Dimensions of s_ima2 and ima2 must match"
+   if (s_ima2 is None):
+      print('Warning: ima1 standard deviation not provided')
+      mruns2=0
+   else:
+      if np.isscalar(s_ima2):
+         print('Warning: common standard deviation provided for the whole map')
+         s_ima2=np.copy(s_ima2)*np.ones_like(ima2)
+      assert s_ima2.shape==ima2.shape, "Dimensions of s_ima2 and ima2 must match"
+      mruns2=nruns
 
-   if np.all(s_ima2==0.):
-      print('Warning: ima2 standard deviation not provided')
-      mruns2=1
+   # -----------------------------------------------
+   ngoodvec=np.zeros(mruns1*mruns2)
 
    # Circular statistic outputs of orientation between image gradients
    rvec=np.zeros(mruns1*mruns2)
    zvec=np.zeros(mruns1*mruns2)
    vvec=np.zeros(mruns1*mruns2)
+   vovervmaxvec=np.zeros(mruns1*mruns2)
    meanphivec=np.zeros(mruns1*mruns2)
 
     # Circular statistic outputs of directions between image gradients 
@@ -126,7 +130,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
    meanpear=np.nan; s_meanpear=np.nan 
    meanccor=np.nan; s_meanccor=np.nan
 
-   if (nruns > 0):
+   if (np.logical_or(mruns1 > 0, mruns2 > 0)):
       print("Running astroHOG Montecarlo ========================================")
       pbar = tqdm(total=mruns1*mruns2)
 
@@ -136,19 +140,23 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
             rand2=np.random.normal(loc=ima2, scale=s_ima2)
 
             circstats, corrframe, sima1, sima2 = HOGcorr_imaLITE(rand1, rand2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, mask1=mask1, mask2=mask2, weights=weights)
+            ind=np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))
 
-            rvec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['RVL']
-            zvec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['Z']
-            vvec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['V']
-            meanphivec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['meanphi']
+            ngoodvec[ind]=circstats['ngood']
 
-            rdvec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['RVLd']
-            zdvec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['Zd']
-            vdvec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['Vd']
-            meanphidvec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['meanphid']
+            rvec[ind]=circstats['RVL']
+            zvec[ind]=circstats['Z']
+            vvec[ind]=circstats['V']
+            vovervmaxvec[ind]=circstats['VoverVmax']
+            meanphivec[ind]=circstats['meanphi']
 
-            pearvec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['pearsonr']
-            ccorvec[np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))]=circstats['crosscor']   
+            rdvec[ind]=circstats['RVLd']
+            zdvec[ind]=circstats['Zd']
+            vdvec[ind]=circstats['Vd']
+            meanphidvec[ind]=circstats['meanphid']
+
+            pearvec[ind]=circstats['pearsonr']
+            ccorvec[ind]=circstats['crosscor']   
 
             pbar.update()
 
@@ -157,6 +165,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
       meanr=np.mean(rvec); s_r=np.std(rvec)
       meanz=np.mean(zvec); s_z=np.std(zvec)
       meanv=np.mean(vvec); s_v=np.std(vvec)
+      meanvovervmax=np.mean(vovervmaxvec); s_vovervmax=np.std(vovervmaxvec)
       output=HOG_PRS(meanphivec)
       meanphi=output['meanphi']; s_meanphi=output['s_meanphi'];
 
@@ -169,7 +178,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
       meanpear=np.mean(pearvec); s_pear=np.std(pearvec);     
       meanccor=np.mean(ccorvec); s_ccor=np.std(ccorvec);
 
-      ngood=circstats['ngood']
+      ngood=np.mean(ngoodvec)
 
    else:
       
@@ -180,6 +189,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
       meanr=circstats['RVL']; s_r=np.nan
       meanz=circstats['Z'];   s_z=np.nan
       meanv=circstats['V'];   s_v=np.nan  
+      meanvovervmax=circstats['VoverVmax'];   s_vovervmax=np.nan
       meanphi=circstats['meanphi']; s_meanphi=np.nan
  
       meanrd=circstats['RVLd']; s_rd=np.nan
@@ -192,9 +202,8 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
 
       ngood=circstats['ngood']    
 
-
-   circstats={'RVL': meanr, 'Z': meanz, 'V': meanv, 'meanphi': meanphi,
-              's_RVL': s_r, 's_Z': s_z, 's_V': s_v, 's_meanphi': s_meanphi,
+   circstats={'RVL': meanr, 'Z': meanz, 'V': meanv, 'VoverVmax': meanvovervmax, 'meanphi': meanphi,
+              's_RVL': s_r, 's_Z': s_z, 's_V': s_v, 's_VoverVmax': s_vovervmax, 's_meanphi': s_meanphi,
               'RVLd': meanrd, 'Zd': meanzd, 'Vd': meanvd, 'meanphid': meanphid,
               's_RVLd': s_rd, 's_Zd': s_zd, 's_Vd': s_vd, 's_meanphid': s_meanphid,
               'pearsonr': meanpear, 's_pearsonr': s_pear, 'crosscor': meanccor, 's_crosscor': s_ccor, 
@@ -204,7 +213,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=0., s_ima2=0., pxsz=1., ksz=1., res=1., nruns
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=None, mask2=None, gradthres1=0., gradthres2=0., weights=None, computejk=False):
+def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=None, mask2=None, gradthres1=None, gradthres2=None, weights=None, computejk=False):
    """ Calculates the spatial correlation between im1 and im2 using the HOG method 
 
    Parameters
@@ -278,8 +287,12 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
    # Excluding null gradients
    normGrad1=np.sqrt(dI1dx**2+dI1dy**2)
    normGrad2=np.sqrt(dI2dx**2+dI2dy**2)
-   bad=np.logical_or(normGrad1 <= gradthres1, normGrad2 <= gradthres2).nonzero()
-   phi[bad]=np.nan
+   if np.logical_not(gradthres1 is None):
+      bad=(normGrad1 <= gradthres1).nonzero()
+      phi[bad]=np.nan
+   if np.logical_not(gradthres2 is None):
+      bad=(normGrad2 <= gradthres2).nonzero()
+      phi[bad]=np.nan 
  
    # Excluding masked gradients
    if (np.size((mask1.ravel() > 0.).nonzero()) > 1):
@@ -301,12 +314,12 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
       phi[:]=np.nan
 
    good=np.isfinite(phi).nonzero()
-   ngood=np.size(good)
-
+   tempngood=np.size(good)
    # Circular statistic outputs of orientation between image gradients
    rvl=np.nan # Resulting vector length (rvl)
    Z=np.nan; # Rayleigh statistic 
-   V=np.nan; # Projected Rayleigh statistic 
+   V=np.nan; # Projected Rayleigh statistic
+   VoverVmax=np.nan 
    meanphi=np.nan; # Mean orientation angle
    s_meanphi=np.nan;
  
@@ -321,16 +334,20 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
    pear=np.nan; # Pearson correlation coefficient 
    ccor=np.nan; # Crosscorrelation 
 
-   if (ngood >= 2):
+   if (tempngood >= 2):
 
       # Calculate orientation statistics between image gradients 
       output=HOG_PRS(2.*phi[good], weights=weights[good])
+      outputMax=HOG_PRS(2.*np.zeros_like(phi[good]), weights=weights[good])
       rvl=output['mrv']
       Z=output['Z']
-      V=output['Zx'] 
+      V=output['Zx']
+      VoverVmax=output['Zx']/outputMax['Zx']
+
       s_V=output['s_Zx'] 
       meanphi=output['meanphi']
- 
+      ngood=output['ngood'] 
+  
       # Calculate direction statistics between image gradients 
       output=HOG_PRS(phi[good], weights=weights[good])
       rvld=output['mrv']
@@ -349,7 +366,7 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
 
       print("WARNING: not enough pixels to compute astroHOG")
 
-   circstats={'RVL': rvl, 'Z': Z, 'V': V, 'meanphi': meanphi, 
+   circstats={'RVL': rvl, 'Z': Z, 'V': V, 'VoverVmax': VoverVmax, 'meanphi': meanphi, 
               'RVLd': rvld, 'Zd': Zd, 'Vd': Vd, 'meanphid': meanphid, 
 	      'pearsonr': pear, 'crosscor': ccor, 'ngood': ngood}
    corrframe=phi

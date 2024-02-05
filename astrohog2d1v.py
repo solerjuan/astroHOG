@@ -48,28 +48,51 @@ def process_item(item):
       'pos2': item.pos2
    }
 
-# --------------------------------------------------------------------------------------------------------------------------------
-def BlockAverage(corrcube, nbx=7, nby=7, vlims=[0.,1.,0.,1.], weight=1.):
+# --------------------------------------------------------------------------------------------------------------------
+def HOGppvblocks(corrcube, nbx=7, nby=7, vlims=[0.,1.,0.,1.], weight=1.):
+   # Uses the pre-calculated global HOG correlation to calculate the HOG correlation in block of the map
+   #
+   # INPUTS
+   #
+   # correcube -- output of HOGcorr_ppvcubes function containing relative orientation angles between gradients 
+   #
+   # OUTPUTS
+   #
 
    sz=np.shape(corrcube)
-   limsx=np.linspace(0,sz[2]-1,nbx+1,dtype=int)
-   limsy=np.linspace(0,sz[3]-1,nby+1,dtype=int)
+   x=(np.arange(0,sz[2],1)/(sz[2]/nbx)).astype(int)
+   y=(np.arange(0,sz[3],1)/(sz[3]/nby)).astype(int)
+   xx, yy = np.meshgrid(x, y)
+   #limsx=np.linspace(0,sz[2]-1,nbx+1,dtype=int)
+   #limsy=np.linspace(0,sz[3]-1,nby+1,dtype=int)
+
+   zblocks=np.zeros([sz[0],sz[1],nbx,nby]) 
    vblocks=np.zeros([sz[0],sz[1],nbx,nby])
 
    maxvblocks=np.zeros([nbx,nby])
    sigvblocks=np.zeros([nbx,nby])
 
-   for i in range(0, np.size(limsx)-1):
-      for k in range(0, np.size(limsy)-1):
+   # Loop over blocks 
+   print("Block averaging ==========================")
+   for i in tqdm(range(0, nbx)):
+      for k in range(0, nby):
 
+         # Loop over velocity channels
          for vi in range(0, sz[0]):
             for vk in range(0, sz[1]):
+               phiframe=corrcube[vi,vk,:,:]  
+               goodpos=np.logical_and(xx==i,yy==k).nonzero()
+               phi=np.ravel(phiframe[goodpos])     
+               wghts=weight*np.ones_like(phi)
+               good=np.isfinite(phi).nonzero()
 
-               phi = corrcube[vi,vk,limsx[i]:limsx[i+1],limsy[k]:limsy[k+1]]
-               tempphi=phi.ravel()
-               wghts=0.*tempphi[np.isfinite(tempphi).nonzero()]+weight
-               pz, Zx = circ.tests.vtest(2.*tempphi[np.isfinite(tempphi).nonzero()],0.,w=wghts)
-               vblocks[vi,vk,i,k] = Zx
+               if (np.size(good) > 1):
+                  output=HOG_PRS(2.*phi[good], weights=wghts[good])
+                  zblocks[vi,vk,i,k]=output['Z']
+                  vblocks[vi,vk,i,k]=output['Zx']
+               else:
+                  zblocks[vi,vk,i,k]=np.nan
+                  vblocks[vi,vk,i,k]=np.nan 
 
          tempvblocks=vblocks[:,:,i,k]
          maxvblocks[i,k]=np.max(tempvblocks[np.isfinite(tempvblocks).nonzero()])
@@ -98,8 +121,12 @@ def BlockAverage(corrcube, nbx=7, nby=7, vlims=[0.,1.,0.,1.], weight=1.):
 
    imaxb, jmaxb = (maxvblocks==np.max(maxvblocks)).nonzero()
 
-   return [limsx[imaxb[0]],limsx[imaxb[0]+1],limsy[jmaxb[0]],limsy[jmaxb[0]+1]], vblocks[:,:,imaxb[0], jmaxb[0]], maxvblocks
+   # Output circular statistics for the block with the highest V
+   circstats={'Z': zblocks[:,:,imaxb[0], jmaxb[0]], 
+              'V': vblocks[:,:,imaxb[0], jmaxb[0]]}
 
+   #return [limsx[imaxb[0]],limsx[imaxb[0]+1],limsy[jmaxb[0]],limsy[jmaxb[0]+1]], vblocks[:,:,imaxb[0], jmaxb[0]], maxvblocks
+   return circstats, maxvblocks, xx, yy
 
 # ================================================================================================================
 def HOGcorr_ppvcubes(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=1., mask1=0, mask2=0, gradthres1=0., gradthres2=0., s_cube1=0., s_cube2=0., nruns=0, weights=None):
