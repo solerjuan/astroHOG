@@ -74,30 +74,33 @@ def HOGppvblocks(corrcube, nbx=7, nby=7, vlims=[0.,1.,0.,1.], weight=1.):
 
    # Loop over blocks 
    print("Block averaging ==========================")
-   for i in tqdm(range(0, nbx)):
-      for k in range(0, nby):
+   for i in tqdm(range(0, nby)):
+      for k in range(0, nbx):
 
          # Loop over velocity channels
          for vi in range(0, sz[0]):
             for vk in range(0, sz[1]):
                phiframe=corrcube[vi,vk,:,:]  
-               goodpos=np.logical_and(xx==i,yy==k).nonzero()
+               goodpos=np.logical_and(yy==i,xx==k).nonzero()
                phi=np.ravel(phiframe[goodpos])     
                wghts=weight*np.ones_like(phi)
                good=np.isfinite(phi).nonzero()
 
                if (np.size(good) > 1):
                   output=HOG_PRS(2.*phi[good], weights=wghts[good])
-                  zblocks[vi,vk,i,k]=output['Z']
-                  vblocks[vi,vk,i,k]=output['Zx']
+                  zblocks[vi,vk,k,i]=output['Z']
+                  vblocks[vi,vk,k,i]=output['Zx']
                else:
-                  zblocks[vi,vk,i,k]=np.nan
-                  vblocks[vi,vk,i,k]=np.nan 
+                  zblocks[vi,vk,k,i]=np.nan
+                  vblocks[vi,vk,k,i]=np.nan 
 
-         tempvblocks=vblocks[:,:,i,k]
-         maxvblocks[i,k]=np.max(tempvblocks[np.isfinite(tempvblocks).nonzero()])
-         sigvblocks[i,k]=np.std(tempvblocks[np.isfinite(tempvblocks).nonzero()])
-
+         tempvblocks=vblocks[:,:,k,i]
+         if (np.size(np.isfinite(tempvblocks).nonzero()) > 0):
+            maxvblocks[i,k]=np.max(tempvblocks[np.isfinite(tempvblocks).nonzero()])
+            sigvblocks[i,k]=np.std(tempvblocks[np.isfinite(tempvblocks).nonzero()])
+         else:
+            maxvblocks[i,k]=np.nan
+            sigvblocks[i,k]=np.nan
    #if (np.logical_and(nbx==1,nby==1)):
    #   fig, ax = plt.subplots(figsize = (9.0,8.0))
    #   im=ax.imshow(vblocks[:,:,0,0], origin='lower', extent=vlims, vmin=0., vmax=np.max(maxvblocks), aspect='auto')
@@ -119,7 +122,7 @@ def HOGppvblocks(corrcube, nbx=7, nby=7, vlims=[0.,1.,0.,1.], weight=1.):
    #   cbl.ax.set_title(r'$V$')
    #   plt.show()
 
-   imaxb, jmaxb = (maxvblocks==np.max(maxvblocks)).nonzero()
+   imaxb, jmaxb = (maxvblocks==np.nanmax(maxvblocks)).nonzero()
 
    # Output circular statistics for the block with the highest V
    circstats={'Z': zblocks[:,:,imaxb[0], jmaxb[0]], 
