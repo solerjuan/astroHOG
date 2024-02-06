@@ -323,7 +323,8 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
       phi[:]=np.nan
 
    good=np.isfinite(phi).nonzero()
-   tempngood=np.size(good)
+   ngood=np.size(good)
+
    # Circular statistic outputs of orientation between image gradients
    rvl=np.nan # Resulting vector length (rvl)
    Z=np.nan; # Rayleigh statistic 
@@ -343,7 +344,7 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
    pear=np.nan; # Pearson correlation coefficient 
    ccor=np.nan; # Crosscorrelation 
 
-   if (tempngood >= 2):
+   if (ngood >= 2):
 
       # Calculate orientation statistics between image gradients 
       output=HOG_PRS(2.*phi[good], weights=weights[good])

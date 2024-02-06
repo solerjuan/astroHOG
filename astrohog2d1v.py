@@ -131,7 +131,9 @@ def HOGppvblocks(corrcube, nbx=7, nby=7, vlims=[0.,1.,0.,1.], weight=1.):
               'V': vblocks[:,:,imaxb[0], jmaxb[0]]}
 
    #return [limsx[imaxb[0]],limsx[imaxb[0]+1],limsy[jmaxb[0]],limsy[jmaxb[0]+1]], vblocks[:,:,imaxb[0], jmaxb[0]], maxvblocks
-   return circstats, maxvblocks, xx, yy
+   #return circstats, maxvblocks, xx, yy
+   #return vblocks, maxvblocks, xx, yy
+   return vblocks, xx, yy
 
 # ================================================================================================================
 def HOGcorr_ppvcubes(cube1, cube2, z1min, z1max, z2min, z2max, pxsz=1., ksz=1., res=1., mask1=0, mask2=0, gradthres1=0., gradthres2=0., s_cube1=0., s_cube2=0., nruns=0, weights=None, verbose=True):
