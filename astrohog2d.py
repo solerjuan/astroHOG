@@ -137,7 +137,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=None, s_ima2=None, pxsz=1., ksz=1., res=1., n
    meanccor=np.nan; s_meanccor=np.nan
 
    if (np.logical_or(mruns1 > 0, mruns2 > 0)):
-      print("Running astroHOG Montecarlo ========================================")
+      vprint("Running astroHOG Montecarlo ========================================", verbose=verbose, verbose=verbose)
       if (verbose):
          pbar = tqdm(total=mruns1*mruns2)
 
