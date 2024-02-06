@@ -23,6 +23,12 @@ from statests import *
 
 from tqdm import tqdm
 
+# --------------------------------------------------------------------------------------------------------------
+def vprint(obj, verbose=True):
+   if verbose:
+      print(obj)
+   return
+
 # ---------------------------------------------------------------------------------------------------------------
 def mse(x, y):
     return np.linalg.norm(x - y)
@@ -51,7 +57,7 @@ def imablockaverage(corrframe, nbx=7, nby=7, weight=1.):
    return vblocks
 
 # ------------------------------------------------------------------------------------------------------------------
-def HOGcorr_ima(ima1, ima2, s_ima1=None, s_ima2=None, pxsz=1., ksz=1., res=1., nruns=0, mask1=None, mask2=None, gradthres1=None, gradthres2=None, weights=None):
+def HOGcorr_ima(ima1, ima2, s_ima1=None, s_ima2=None, pxsz=1., ksz=1., res=1., nruns=0, mask1=None, mask2=None, gradthres1=None, gradthres2=None, weights=None, verbose=True):
    """ Calculates the spatial correlation between im1 and im2 using the HOG method and its confidence interval using Montecarlo sampling 
 
    Parameters
@@ -77,21 +83,21 @@ def HOGcorr_ima(ima1, ima2, s_ima1=None, s_ima2=None, pxsz=1., ksz=1., res=1., n
    sz2=np.shape(ima2)
 
    if (s_ima1 is None):
-      print('Warning: ima1 standard deviation not provided')
+      vprint('Warning: ima1 standard deviation not provided', verbose=verbose)
       mruns1=0
    else:
       if np.isscalar(s_ima1):
-         print('Warning: common standard deviation provided for the whole map')
+         vprint('Warning: common standard deviation provided for the whole map', verbose=verbose)
          s_ima1=np.copy(s_ima1)*np.ones_like(ima1)
       assert s_ima1.shape==ima1.shape, "Dimensions of s_ima1 and ima2 must match"
       mruns1=nruns
 
    if (s_ima2 is None):
-      print('Warning: ima1 standard deviation not provided')
+      vprint('Warning: ima1 standard deviation not provided', verbose=verbose)
       mruns2=0
    else:
       if np.isscalar(s_ima2):
-         print('Warning: common standard deviation provided for the whole map')
+         vprint('Warning: common standard deviation provided for the whole map', verbose=verbose)
          s_ima2=np.copy(s_ima2)*np.ones_like(ima2)
       assert s_ima2.shape==ima2.shape, "Dimensions of s_ima2 and ima2 must match"
       mruns2=nruns
@@ -132,7 +138,8 @@ def HOGcorr_ima(ima1, ima2, s_ima1=None, s_ima2=None, pxsz=1., ksz=1., res=1., n
 
    if (np.logical_or(mruns1 > 0, mruns2 > 0)):
       print("Running astroHOG Montecarlo ========================================")
-      pbar = tqdm(total=mruns1*mruns2)
+      if (verbose):
+         pbar = tqdm(total=mruns1*mruns2)
 
       for i in range(0,mruns1):
          rand1=np.random.normal(loc=ima1, scale=s_ima1)
@@ -158,9 +165,11 @@ def HOGcorr_ima(ima1, ima2, s_ima1=None, s_ima2=None, pxsz=1., ksz=1., res=1., n
             pearvec[ind]=circstats['pearsonr']
             ccorvec[ind]=circstats['crosscor']   
 
-            pbar.update()
-
-      pbar.close()  
+            if (verbose):
+               pbar.update()
+      
+      if (verbose):
+         pbar.close()  
 
       meanr=np.mean(rvec); s_r=np.std(rvec)
       meanz=np.mean(zvec); s_z=np.std(zvec)
@@ -182,8 +191,8 @@ def HOGcorr_ima(ima1, ima2, s_ima1=None, s_ima2=None, pxsz=1., ksz=1., res=1., n
 
    else:
       
-      print('Montecarlo iterations disabled =============================')
-      print('Warning: uncertainties on the correlation parameters will not be provided')
+      vprint('Montecarlo iterations disabled =============================', verbose=verbose)
+      vprint('Warning: uncertainties on the correlation parameters will not be provided', verbose=verbose)
       circstats, corrframe, sima1, sima2 = HOGcorr_imaLITE(ima1, ima2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, mask1=mask1, mask2=mask2, weights=weights)
 
       meanr=circstats['RVL']; s_r=np.nan
@@ -213,7 +222,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=None, s_ima2=None, pxsz=1., ksz=1., res=1., n
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=None, mask2=None, gradthres1=None, gradthres2=None, weights=None, computejk=False):
+def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=None, mask2=None, gradthres1=None, gradthres2=None, weights=None, computejk=False, verbose=True):
    """ Calculates the spatial correlation between im1 and im2 using the HOG method 
 
    Parameters
