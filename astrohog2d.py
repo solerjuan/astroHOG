@@ -308,18 +308,18 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
       m1bad=(mask1 < 1.).nonzero()
       phi[m1bad]=np.nan
    else:
-      print("No unmasked elements in ima1")
+      vprint("No unmasked elements in ima1")
       phi[:]=np.nan
  
    if (np.size((mask2.ravel() > 0.).nonzero()) > 1):
       m2bad=(mask2 < 1.).nonzero()
       phi[m2bad]=np.nan
    else:
-      print("No unmasked elements in ima2")
+      vprint("No unmasked elements in ima2")
       phi[:]=np.nan
 
    if (np.size((mask1.ravel()*mask2.ravel() > 0.).nonzero()) < 1):
-      print("No unmasked elements in the joint mask")
+      vprint("No unmasked elements in the joint mask")
       phi[:]=np.nan
 
    good=np.isfinite(phi).nonzero()
@@ -374,7 +374,7 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
 
    else:
 
-      print("WARNING: not enough pixels to compute astroHOG")
+      vprint("WARNING: not enough pixels to compute astroHOG")
 
    circstats={'RVL': rvl, 'Z': Z, 'V': V, 'VoverVmax': VoverVmax, 'meanphi': meanphi, 
               'RVLd': rvld, 'Zd': Zd, 'Vd': Vd, 'meanphid': meanphid, 

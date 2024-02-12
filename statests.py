@@ -72,11 +72,11 @@ def HOG_PRS(phi, weights=None, s_phi=None, nruns=1):
       return {'Z': Z, 's_Z': s_Z, 'Zx': Zx, 's_Zx': s_Zx, 's_ZxMC': s_ZxMC, 'meanphi': meanphi, 's_meanphi': s_meanphi, 'mrv': mrv, 's_mrv': s_mrv, 'ngood': ngood} 
 
 # ------------------------------------------------------------------------------------------------------------------------
-def HOG_PRSlite(phi, weights=None):
+def HOG_PRSlite(angles, weights=None):
    # Calculates the projected Rayleigh statistic of the distributions of angles phi.
    #
    # INPUTS
-   # phi      - angles between -pi/2 and pi/2
+   # angles   - angles between -pi/2 and pi/2
    # weights  - statistical weights
    #
    # OUTPUTS
@@ -85,9 +85,9 @@ def HOG_PRSlite(phi, weights=None):
    # meanPhi  -
 
    if weights is None:
-      weights=np.ones_like(phi)
+      weights=np.ones_like(angles)
 
-   angles=phi #2.*phi
+   #angles=phi #2.*phi
 
    circX=np.sum(weights*np.cos(angles))/np.sum(weights)
    circY=np.sum(weights*np.sin(angles))/np.sum(weights)
@@ -96,7 +96,6 @@ def HOG_PRSlite(phi, weights=None):
    #p0, Zx0=pycircstat.tests.vtest(angles, 0., w=weights)
    #print("Zx0", Zx0/np.sqrt(np.sum(weights)/2.)) # Too match the Jow et al. (2018) results
    Zx=np.sum(weights*np.cos(angles))/np.sqrt(np.sum(weights**2)/2.)
-   #print("Zx", Zx)
    temp=np.sum(np.cos(angles)*np.cos(angles))
    s_Zx=np.sqrt((2.*temp-Zx*Zx)/np.size(angles))
 
@@ -107,7 +106,7 @@ def HOG_PRSlite(phi, weights=None):
    Z=np.sqrt(Zx**2+Zy**2)
    s_Z=np.sqrt(s_Zx**2+s_Zy**2)
 
-   meanphi=circmean(angles, low=-np.pi, high=np.pi)  #0.5*np.arctan2(Zy, Zx)
+   meanphi=circmean(angles, low=-np.pi, high=np.pi)
    stdphi=circstd(angles, low=-np.pi, high=np.pi)
 
    ngood=float(np.size(angles)) 
