@@ -290,8 +290,8 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
    dI2dy=ndimage.filters.gaussian_filter(ima2, [pxksz, pxksz], order=[1,0], mode=mode)
 
    # Calculation of the relative orientation angles
-   tempphi=np.arctan2(dI1dx*dI2dy-dI1dy*dI2dx, dI1dx*dI2dx+dI1dy*dI2dy)
-   phi=np.arctan(np.tan(tempphi))
+   phi=np.arctan2(dI1dx*dI2dy-dI1dy*dI2dx, dI1dx*dI2dx+dI1dy*dI2dy)
+   #phi=np.arctan(np.tan(tempphi)) # Deprecated mapping to -90 to 90 range.
 
    # Excluding null gradients
    normGrad1=np.sqrt(dI1dx**2+dI1dy**2)
