@@ -93,7 +93,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=None, s_ima2=None, pxsz=1., ksz=1., res=1., n
       mruns1=nruns
 
    if (s_ima2 is None):
-      vprint('Warning: ima1 standard deviation not provided', verbose=verbose)
+      vprint('Warning: ima2 standard deviation not provided', verbose=verbose)
       mruns2=0
    else:
       if np.isscalar(s_ima2):
