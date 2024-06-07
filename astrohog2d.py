@@ -82,9 +82,10 @@ def HOGcorr_ima(ima1, ima2, s_ima1=None, s_ima2=None, pxsz=1., ksz=1., res=1., n
    sz1=np.shape(ima1)
    sz2=np.shape(ima2)
 
-   if np.logical_and(nruns > 0, s_ima1 is None):
-      vprint('Warning: ima1 standard deviation not provided', verbose=verbose)
-      mruns1=0
+   if (s_ima1 is None):
+      if (nruns > 0):
+         vprint('Warning: ima1 standard deviation not provided', verbose=verbose)
+         mruns1=0
    else:
       if np.isscalar(s_ima1):
          vprint('Warning: common standard deviation provided for the whole map', verbose=verbose)
@@ -92,9 +93,10 @@ def HOGcorr_ima(ima1, ima2, s_ima1=None, s_ima2=None, pxsz=1., ksz=1., res=1., n
       assert s_ima1.shape==ima1.shape, "Dimensions of s_ima1 and ima2 must match"
       mruns1=nruns
 
-   if np.logical_and(nruns > 0, s_ima2 is None):
-      vprint('Warning: ima2 standard deviation not provided', verbose=verbose)
-      mruns2=0
+   if (s_ima2 is None):
+      if (nruns > 0):
+         vprint('Warning: ima2 standard deviation not provided', verbose=verbose)
+         mruns2=0
    else:
       if np.isscalar(s_ima2):
          vprint('Warning: common standard deviation provided for the whole map', verbose=verbose)
