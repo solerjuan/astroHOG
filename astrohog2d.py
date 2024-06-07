@@ -221,7 +221,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=None, s_ima2=None, pxsz=1., ksz=1., res=1., n
    return circstats, corrframe, sima1, sima2
 
 
-# ---------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------
 def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=None, mask2=None, gradthres1=None, gradthres2=None, weights=None, computejk=False, verbose=True):
    """ Calculates the spatial correlation between im1 and im2 using the HOG method 
 
@@ -383,8 +383,193 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
 
    return circstats, corrframe, sima1, sima2
 
+# ---------------------------------------------------------------------------------------------------------
+def HOGcorr_imaANDcube(ima1, cube2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=None, mask2=None, gradthres1=None, gradthres2=None, weights=None, computejk=False, verbose=True):
+   """ Calculates the spatial correlation between im1 and im2 using the HOG method 
+
+   Parameters
+   ----------   
+   ima1 : array corresponding to the first image to be compared 
+   cube2 : array corresponding to the second image to be compared
+   pxsz :
+   ksz : Size of the derivative kernel in the pixel size units
+   mode: Specify how the input array is extended when the kernel overlaps the border of the map. 
+         Default: 'nearest'; The input is extended by replicating the last pixel.   
+ 
+   Returns
+   -------
+    circstats:  Statistics describing the correlation between the input images.
+                RVL      - Resulting vector lenght. 
+                Z        - Rayleigh statistic.
+                V        - Projected Ratleigh statistic.
+                pearsonr - Pearson correlation coefficient.
+                ngood    - Number of pixels used for the correlation
+ 
+    corrframe : array containing the angles between the image gradients
+
+    Examples
+   --------
+
+   """
+
+   ima2=cube2[0,:,:]
+ 
+   # Check if the images match ===================================================
+   assert ima2.shape == ima1.shape, "Dimensions of ima2 and ima1 must match"
+   sz1=np.shape(ima1)
+
+   # Weights ====================================================================
+   # Assign weights if none are specified
+   if weights is None:
+      weights=np.ones(sz1)
+   # Assign weights if the weights are all the same
+   if (np.size(weights)==1):
+      uniweights=weights
+      weights=uniweights*np.ones(sz1)
+   # Check if the provided weights match the image
+   assert weights.shape == ima1.shape, "Dimensions of weights and ima1 must match"
+
+   # Check if the masks match the image shape
+   if mask1 is None:
+      "Mask 1 not defined by the user"
+      mask1=np.ones_like(ima1)
+   else:
+      assert mask1.shape == ima1.shape, "Dimensions of mask1 and ima1 must match"
+
+   imask2=mask2[0,:,:]
+   if mask2 is None:
+      "Mask 2 not defined by the user"
+      mask2=np.ones_like(cube2)
+   else:
+      assert mask2.shape == cube2.shape, "Dimensions of mask2 and ima2 must match"
+
+   pxksz=(ksz/(2*np.sqrt(2.*np.log(2.))))/pxsz #gaussian_filter takes sigma instead of FWHM as input
+
+   # Calculate gradients of image 1
+   sima1=ndimage.filters.gaussian_filter(ima1, [pxksz, pxksz], order=[0,0], mode=mode)
+   dI1dx=ndimage.filters.gaussian_filter(ima1, [pxksz, pxksz], order=[0,1], mode=mode)
+   dI1dy=ndimage.filters.gaussian_filter(ima1, [pxksz, pxksz], order=[1,0], mode=mode)
+
+   sz2=np.shape(cube2)
+
+   # Circular statistic outputs of orientation between image gradients
+   vecRVL=np.nan*np.zeros(sz2[0]); # Resulting vector length (rvl)
+   vecZ=np.nan*np.zeros(sz2[0]); # Rayleigh statistic 
+   vecV=np.nan*np.zeros(sz2[0]); # Projected Rayleigh statistic
+   vecs_V=np.nan*np.zeros(sz2[0]);
+   vecVoverVmax=np.nan*np.zeros(sz2[0]);
    
-# -------------------------------------------------------------------------------------------------------------------------------
+   # Circular statistic outputs of directions between image gradients  
+   vecRVLd=np.nan*np.zeros(sz2[0]) # Resulting vector length (rvl)
+   vecZd=np.nan*np.zeros(sz2[0]); # Rayleigh statistic 
+   vecVd=np.nan*np.zeros(sz2[0]); # Projected Rayleigh statistic 
+   vecs_Vd=np.nan*np.zeros(sz2[0]);
+
+   # Correlation statistics 
+   vecpear=np.nan*np.zeros(sz2[0]); # Pearson correlation coefficient 
+   vecccor=np.nan*np.zeros(sz2[0]); # Crosscorrelation 
+ 
+   vecngood=np.nan*np.zeros(sz2[0]);
+
+   scube2=np.nan*np.zeros_like(cube2)
+
+   corrframe=np.nan*np.zeros([sz2[0],sz1[0],sz1[1]])   
+
+   for i in range(0,sz2[0]):
+
+      # Calculate gradients of images in cube2
+      ima2=cube2[i,:,:]
+      sima2=ndimage.filters.gaussian_filter(ima2, [pxksz, pxksz], order=[0,0], mode=mode)
+      scube2[i,:,:]=sima2
+      dI2dx=ndimage.filters.gaussian_filter(ima2, [pxksz, pxksz], order=[0,1], mode=mode)
+      dI2dy=ndimage.filters.gaussian_filter(ima2, [pxksz, pxksz], order=[1,0], mode=mode)
+
+      # Calculation of the relative orientation angles
+      phi=np.arctan2(dI1dx*dI2dy-dI1dy*dI2dx, dI1dx*dI2dx+dI1dy*dI2dy)
+      #phi=np.arctan(np.tan(tempphi)) # Deprecated mapping to -90 to 90 range.
+
+      # Excluding null gradients
+      normGrad1=np.sqrt(dI1dx**2+dI1dy**2)
+      normGrad2=np.sqrt(dI2dx**2+dI2dy**2)
+      if np.logical_not(gradthres1 is None):
+         bad=(normGrad1 <= gradthres1).nonzero()
+         phi[bad]=np.nan
+      if np.logical_not(gradthres2 is None):
+         bad=(normGrad2 <= gradthres2).nonzero()
+         phi[bad]=np.nan
+
+      # Excluding masked gradients
+      if (np.size((mask1.ravel() > 0.).nonzero()) > 1):
+         m1bad=(mask1 < 1.).nonzero()
+         phi[m1bad]=np.nan
+      else:
+         vprint("No unmasked elements in ima1")
+         phi[:]=np.nan
+
+      imask2=mask2[i,:,:]
+      if (np.size((imask2.ravel() > 0.).nonzero()) > 1):
+         m2bad=(imask2 < 1.).nonzero()
+         phi[m2bad]=np.nan
+      else:
+         vprint("No unmasked elements in ima2")
+         phi[:]=np.nan
+
+      if (np.size((mask1.ravel()*imask2.ravel() > 0.).nonzero()) < 1):
+         vprint("No unmasked elements in the joint mask")
+         phi[:]=np.nan
+
+      corrframe[i,:,:]=phi
+      good=np.isfinite(phi).nonzero()
+      ngood=np.size(good)
+
+      if (ngood >= 2):
+
+         # Calculate orientation statistics between image gradients 
+         output=HOG_PRS(2.*phi[good], weights=weights[good])
+         outputMax=HOG_PRS(2.*np.zeros_like(phi[good]), weights=weights[good])
+         vecRVL[i]=output['mrv']
+         vecZ[i]=output['Z']
+         vecV[i]=output['Zx']
+         vecs_V[i]=output['s_Zx']
+         vecVoverVmax[i]=output['Zx']/outputMax['Zx']
+
+         vecngood[i]=output['ngood']
+  
+         # Calculate direction statistics between image gradients 
+         output=HOG_PRS(phi[good], weights=weights[good])
+         vecRVLd[i]=output['mrv']
+         vecZd[i]=output['Z']
+         vecVd[i]=output['Zx']
+         vecs_Vd[i]=output['s_Zx']
+      
+         # Calculate Pearson correlation coefficient
+         vecpear[i]=PearsonCorrelationCoefficient(ima1[good], ima2[good])
+
+         # Calculate cross correlation
+         vecccor[i]=CrossCorrelation(ima1[good], ima2[good])
+
+      else:
+
+         vprint("WARNING: not enough pixels to compute astroHOG")
+
+   RVL=np.nanmean(vecRVL);             s_RVL=np.nanstd(vecRVL);
+   Z=np.nanmean(vecZ);                 s_Z=np.nanstd(vecZ);
+   V=np.nanmean(vecV);                 s_V=np.nanstd(vecV);
+   VoverVmax=np.nanmean(vecVoverVmax); s_VoverVmax=np.nanstd(vecVoverVmax);
+   
+   RVLd=np.nanmean(vecRVLd);           s_RVLd=np.nanstd(vecRVLd);
+   Zd=np.nanmean(vecZd);               s_Zd=np.nanstd(vecZd);
+   Vd=np.nanmean(vecVd);               s_Vd=np.nanstd(vecVd);
+
+   circstats={'RVL': RVL, 'Z': Z, 'V': V, 'VoverVmax': VoverVmax,
+              's_RVL': s_RVL, 's_Z': s_Z, 's_V': s_V, 's_VoverVmax': s_VoverVmax, 
+              'RVLd': RVLd, 'Zd': Zd, 'Vd': Vd,
+              's_RVLd': s_RVLd, 's_Zd': s_Zd, 's_Vd': s_Vd,
+              'vecngood': vecngood}
+
+   return circstats, corrframe, sima1, sima2
+   
+# ----------------------------------------------------------------------------------------------------------------
 def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., pxsz=1., ksz=1., res=1., mask1=0, mask2=0, wd=1, allow_huge=False, regrid=False):
    # Calculates the spatial correlation between frame1 and the vector field described by vecx and vecy using the HOG methods
    #
