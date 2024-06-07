@@ -85,7 +85,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=None, s_ima2=None, pxsz=1., ksz=1., res=1., n
    if (s_ima1 is None):
       if (nruns > 0):
          vprint('Warning: ima1 standard deviation not provided', verbose=verbose)
-         mruns1=0
+      mruns1=0
    else:
       if np.isscalar(s_ima1):
          vprint('Warning: common standard deviation provided for the whole map', verbose=verbose)
@@ -96,7 +96,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=None, s_ima2=None, pxsz=1., ksz=1., res=1., n
    if (s_ima2 is None):
       if (nruns > 0):
          vprint('Warning: ima2 standard deviation not provided', verbose=verbose)
-         mruns2=0
+      mruns2=0
    else:
       if np.isscalar(s_ima2):
          vprint('Warning: common standard deviation provided for the whole map', verbose=verbose)
