@@ -384,7 +384,7 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
    return circstats, corrframe, sima1, sima2
 
 # ---------------------------------------------------------------------------------------------------------
-def HOGcorr_imaANDcube(ima1, cube2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=None, mask2=None, gradthres1=None, gradthres2=None, weights=None, computejk=False, verbose=True):
+def HOGcorr_imaANDcube(ima1, cube2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=None, mask2=None, gradthres1=None, gradthres2=None, weights=None, computejk=False, verbose=True, s_ima1=None, nruns=0):
    """ Calculates the spatial correlation between im1 and im2 using the HOG method 
 
    Parameters
@@ -479,74 +479,30 @@ def HOGcorr_imaANDcube(ima1, cube2, pxsz=1., ksz=1., res=1., mode='nearest', mas
 
       # Calculate gradients of images in cube2
       ima2=cube2[i,:,:]
-      sima2=ndimage.filters.gaussian_filter(ima2, [pxksz, pxksz], order=[0,0], mode=mode)
-      scube2[i,:,:]=sima2
-      dI2dx=ndimage.filters.gaussian_filter(ima2, [pxksz, pxksz], order=[0,1], mode=mode)
-      dI2dy=ndimage.filters.gaussian_filter(ima2, [pxksz, pxksz], order=[1,0], mode=mode)
-
-      # Calculation of the relative orientation angles
-      phi=np.arctan2(dI1dx*dI2dy-dI1dy*dI2dx, dI1dx*dI2dx+dI1dy*dI2dy)
-      #phi=np.arctan(np.tan(tempphi)) # Deprecated mapping to -90 to 90 range.
-
-      # Excluding null gradients
-      normGrad1=np.sqrt(dI1dx**2+dI1dy**2)
-      normGrad2=np.sqrt(dI2dx**2+dI2dy**2)
-      if np.logical_not(gradthres1 is None):
-         bad=(normGrad1 <= gradthres1).nonzero()
-         phi[bad]=np.nan
-      if np.logical_not(gradthres2 is None):
-         bad=(normGrad2 <= gradthres2).nonzero()
-         phi[bad]=np.nan
-
-      # Excluding masked gradients
-      if (np.size((mask1.ravel() > 0.).nonzero()) > 1):
-         m1bad=(mask1 < 1.).nonzero()
-         phi[m1bad]=np.nan
-      else:
-         vprint("No unmasked elements in ima1")
-         phi[:]=np.nan
-
       imask2=mask2[i,:,:]
-      if (np.size((imask2.ravel() > 0.).nonzero()) > 1):
-         m2bad=(imask2 < 1.).nonzero()
-         phi[m2bad]=np.nan
-      else:
-         vprint("No unmasked elements in ima2")
-         phi[:]=np.nan
-
-      if (np.size((mask1.ravel()*imask2.ravel() > 0.).nonzero()) < 1):
-         vprint("No unmasked elements in the joint mask")
-         phi[:]=np.nan
-
-      corrframe[i,:,:]=phi
-      good=np.isfinite(phi).nonzero()
-      ngood=np.size(good)
+      circstats12, corrframe12, sima1, sima2 = HOGcorr_ima(ima1, ima2, s_ima1=s_ima1, pxsz=pxsz, ksz=ksz, res=res, nruns=0, mask1=mask1, mask2=imask2, gradthres1=gradthres1, gradthres2=gradthres1, weights=weights, verbose=verbose)
+ 
+      ngood=circstats12['ngood']
 
       if (ngood >= 2):
 
          # Calculate orientation statistics between image gradients 
-         output=HOG_PRS(2.*phi[good], weights=weights[good])
-         outputMax=HOG_PRS(2.*np.zeros_like(phi[good]), weights=weights[good])
-         vecRVL[i]=output['mrv']
-         vecZ[i]=output['Z']
-         vecV[i]=output['Zx']
-         vecs_V[i]=output['s_Zx']
-         vecVoverVmax[i]=output['Zx']/outputMax['Zx']
+         vecRVL[i]=circstats12['RVL']
+         vecZ[i]=circstats12['Z']
+         vecV[i]=circstats12['V']
+         vecs_V[i]=circstats12['s_V']
 
-         vecngood[i]=output['ngood']
+         vecngood[i]=circstats12['ngood']
   
          # Calculate direction statistics between image gradients 
-         output=HOG_PRS(phi[good], weights=weights[good])
-         vecRVLd[i]=output['mrv']
-         vecZd[i]=output['Z']
-         vecVd[i]=output['Zx']
-         vecs_Vd[i]=output['s_Zx']
+         vecRVLd[i]=circstats12['RVLd']
+         vecZd[i]=circstats12['Zd']
+         vecVd[i]=circstats12['Vd']
+         vecs_Vd[i]=circstats12['s_Vd']
       
          # Calculate Pearson correlation coefficient
-         vecpear[i]=PearsonCorrelationCoefficient(ima1[good], ima2[good])
-
-         # Calculate cross correlation
-         vecccor[i]=CrossCorrelation(ima1[good], ima2[good])
+         vecpear[i]=circstats12['pearsonr']
+         vecccor[i]=circstats12['crosscor']
 
       else:
 
@@ -555,16 +511,19 @@ def HOGcorr_imaANDcube(ima1, cube2, pxsz=1., ksz=1., res=1., mode='nearest', mas
    RVL=np.nanmean(vecRVL);             s_RVL=np.nanstd(vecRVL);
    Z=np.nanmean(vecZ);                 s_Z=np.nanstd(vecZ);
    V=np.nanmean(vecV);                 s_V=np.nanstd(vecV);
-   VoverVmax=np.nanmean(vecVoverVmax); s_VoverVmax=np.nanstd(vecVoverVmax);
    
    RVLd=np.nanmean(vecRVLd);           s_RVLd=np.nanstd(vecRVLd);
    Zd=np.nanmean(vecZd);               s_Zd=np.nanstd(vecZd);
    Vd=np.nanmean(vecVd);               s_Vd=np.nanstd(vecVd);
 
-   circstats={'RVL': RVL, 'Z': Z, 'V': V, 'VoverVmax': VoverVmax,
-              's_RVL': s_RVL, 's_Z': s_Z, 's_V': s_V, 's_VoverVmax': s_VoverVmax, 
+   pearsonr=np.nanmean(vecpear)
+   crosscor=np.nanmean(vecccor)
+
+   circstats={'RVL': RVL, 'Z': Z, 'V': V, 
+              's_RVL': s_RVL, 's_Z': s_Z, 's_V': s_V, 
               'RVLd': RVLd, 'Zd': Zd, 'Vd': Vd,
               's_RVLd': s_RVLd, 's_Zd': s_Zd, 's_Vd': s_Vd,
+              'pearsonr': pearsonr, 'crosscor': crosscor,
               'vecngood': vecngood}
 
    return circstats, corrframe, sima1, sima2
