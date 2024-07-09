@@ -85,7 +85,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=None, s_ima2=None, pxsz=1., ksz=1., res=1., n
    if (s_ima1 is None):
       if (nruns > 0):
          vprint('Warning: ima1 standard deviation not provided', verbose=verbose)
-      mruns1=0
+      mruns1=1
    else:
       if np.isscalar(s_ima1):
          vprint('Warning: common standard deviation provided for the whole map', verbose=verbose)
@@ -96,7 +96,7 @@ def HOGcorr_ima(ima1, ima2, s_ima1=None, s_ima2=None, pxsz=1., ksz=1., res=1., n
    if (s_ima2 is None):
       if (nruns > 0):
          vprint('Warning: ima2 standard deviation not provided', verbose=verbose)
-      mruns2=0
+      mruns2=1
    else:
       if np.isscalar(s_ima2):
          vprint('Warning: common standard deviation provided for the whole map', verbose=verbose)
@@ -144,9 +144,16 @@ def HOGcorr_ima(ima1, ima2, s_ima1=None, s_ima2=None, pxsz=1., ksz=1., res=1., n
          pbar = tqdm(total=mruns1*mruns2)
 
       for i in range(0,mruns1):
-         rand1=np.random.normal(loc=ima1, scale=s_ima1)
+         if (mruns1 > 1):
+            rand1=np.random.normal(loc=ima1, scale=s_ima1)
+         else:
+            rand1=ima1.copy()
+
          for k in range(0,mruns2):
-            rand2=np.random.normal(loc=ima2, scale=s_ima2)
+            if (mruns2 > 1):
+               rand2=np.random.normal(loc=ima2, scale=s_ima2)
+            else:
+               rand2=ima2.copy()
 
             circstats, corrframe, sima1, sima2 = HOGcorr_imaLITE(rand1, rand2, pxsz=pxsz, ksz=ksz, res=res, gradthres1=gradthres1, gradthres2=gradthres2, mask1=mask1, mask2=mask2, weights=weights)
             ind=np.ravel_multi_index((i, k),  dims=(mruns1,mruns2))
