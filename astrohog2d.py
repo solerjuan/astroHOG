@@ -82,6 +82,9 @@ def HOGcorr_ima(ima1, ima2, s_ima1=None, s_ima2=None, pxsz=1., ksz=1., res=1., n
    sz1=np.shape(ima1)
    sz2=np.shape(ima2)
 
+   if (nruns==0):
+      nruns=1
+
    if (s_ima1 is None):
       if (nruns > 0):
          vprint('Warning: ima1 standard deviation not provided', verbose=verbose)
