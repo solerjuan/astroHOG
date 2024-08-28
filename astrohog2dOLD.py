@@ -455,10 +455,7 @@ def HOGcorr_imaANDcube(ima1, cube2, pxsz=1., ksz=1., res=1., mode='nearest', mas
    else:
       assert mask2.shape == cube2.shape, "Dimensions of mask2 and ima2 must match"
 
-   scube2=np.zeros_like(cube2) 
-
-   #pxksz=(ksz/(2*np.sqrt(2.*np.log(2.))))/pxsz #gaussian_filter takes sigma instead of FWHM as input
-   pxksz=ksz/pxsz
+   pxksz=(ksz/(2*np.sqrt(2.*np.log(2.))))/pxsz #gaussian_filter takes sigma instead of FWHM as input
 
    # Calculate gradients of image 1
    sima1=ndimage.filters.gaussian_filter(ima1, [pxksz, pxksz], order=[0,0], mode=mode)
@@ -472,7 +469,7 @@ def HOGcorr_imaANDcube(ima1, cube2, pxsz=1., ksz=1., res=1., mode='nearest', mas
    vecZ=np.nan*np.zeros(sz2[0]); # Rayleigh statistic 
    vecV=np.nan*np.zeros(sz2[0]); # Projected Rayleigh statistic
    vecs_V=np.nan*np.zeros(sz2[0]);
-   vecVmax=np.nan*np.zeros(sz2[0]);
+   vecVoverVmax=np.nan*np.zeros(sz2[0]);
    
    # Circular statistic outputs of directions between image gradients  
    vecRVLd=np.nan*np.zeros(sz2[0]) # Resulting vector length (rvl)
@@ -486,20 +483,17 @@ def HOGcorr_imaANDcube(ima1, cube2, pxsz=1., ksz=1., res=1., mode='nearest', mas
  
    vecngood=np.nan*np.zeros(sz2[0]);
 
-   corrframe=np.nan*np.zeros([sz2[0],sz1[0],sz1[1]])
    scube2=np.nan*np.zeros_like(cube2)
 
-   for i in range(0,sz2[0]):
+   corrframe=np.nan*np.zeros([sz2[0],sz1[0],sz1[1]])   
 
-      circstats12, corrframe12, sima1, sima2 = HOGcorr_ima(ima1, ima1, s_ima1=s_ima1, pxsz=pxsz, ksz=ksz, res=res, nruns=0, mask1=mask1, mask2=imask2, gradthres1=gradthres1, gradthres2=gradthres1, weights=weights, verbose=verbose)
-      vecVmax[i]=circstats12['V']
+   for i in range(0,sz2[0]):
 
       # Calculate gradients of images in cube2
       ima2=cube2[i,:,:]
       imask2=mask2[i,:,:]
       circstats12, corrframe12, sima1, sima2 = HOGcorr_ima(ima1, ima2, s_ima1=s_ima1, pxsz=pxsz, ksz=ksz, res=res, nruns=0, mask1=mask1, mask2=imask2, gradthres1=gradthres1, gradthres2=gradthres1, weights=weights, verbose=verbose)
-      corrframe[i,:,:]=corrframe12
-      scube2[i,:,:]=sima2
+ 
       ngood=circstats12['ngood']
 
       if (ngood >= 2):
@@ -537,17 +531,15 @@ def HOGcorr_imaANDcube(ima1, cube2, pxsz=1., ksz=1., res=1., mode='nearest', mas
    pearsonr=np.nanmean(vecpear)
    crosscor=np.nanmean(vecccor)
 
-   circstats={'vecRVL': vecRVL, 'vecZ': vecZ, 'vecV': vecV, 'vecVmax': vecVmax, 
-              'vecRVLd': vecRVLd, 'vecZd': vecZd, 'vecVd': vecVd,
-              'RVL': RVL, 'Z': Z, 'V': V, 
+   circstats={'RVL': RVL, 'Z': Z, 'V': V, 
               's_RVL': s_RVL, 's_Z': s_Z, 's_V': s_V, 
               'RVLd': RVLd, 'Zd': Zd, 'Vd': Vd,
               's_RVLd': s_RVLd, 's_Zd': s_Zd, 's_Vd': s_Vd,
               'pearsonr': pearsonr, 'crosscor': crosscor,
               'vecngood': vecngood}
 
-   return circstats, corrframe, sima1, scube2
-
+   return circstats, corrframe, sima1, sima2
+   
 # ----------------------------------------------------------------------------------------------------------------
 def HOGcorr_frameandvec(frame1, vecx, vecy, gradthres=0., vecthres=0., pxsz=1., ksz=1., res=1., mask1=0, mask2=0, wd=1, allow_huge=False, regrid=False):
    # Calculates the spatial correlation between frame1 and the vector field described by vecx and vecy using the HOG methods
