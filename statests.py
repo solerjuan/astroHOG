@@ -31,7 +31,7 @@ def HOG_PRS(phi, weights=None, s_phi=None, nruns=1):
       output=HOG_PRSlite(phi, weights=weights)
       return {'Z': output['Z'], 's_Z': output['s_Z'], 
               'Zx': output['Zx'], 's_Zx': output['s_Zx'], 's_ZxMC': np.nan, 
-              'meanphi': output['meanphi'], 's_meanphi': np.nan, 
+              'meanphi': output['meanphi'], 'stdphi': output['stdphi'], 's_meanphi': np.nan, 
               'mrv': output['mrv'], 's_mrv': np.nan, 'ngood': output['ngood']}
 
    else: 
@@ -65,11 +65,12 @@ def HOG_PRS(phi, weights=None, s_phi=None, nruns=1):
       s_Zx  =np.nanmean(arrs_Zx)
       s_ZxMC=np.nanstd(arrZx) 
       meanphi =circmean(arrmeanphi, low=-np.pi, high=np.pi)
+      stdphi=np.mean(arrstdphi)
       s_meanphi=circstd(arrmeanphi, low=-np.pi, high=np.pi)  
       mrv  =np.nanmean(arrmrv)
       s_mrv=np.nanstd(arrmrv)
      
-      return {'Z': Z, 's_Z': s_Z, 'Zx': Zx, 's_Zx': s_Zx, 's_ZxMC': s_ZxMC, 'meanphi': meanphi, 's_meanphi': s_meanphi, 'mrv': mrv, 's_mrv': s_mrv, 'ngood': ngood} 
+      return {'Z': Z, 's_Z': s_Z, 'Zx': Zx, 's_Zx': s_Zx, 's_ZxMC': s_ZxMC, 'meanphi': meanphi, 'stdphi': stdphi, 's_meanphi': s_meanphi, 'mrv': mrv, 's_mrv': s_mrv, 'ngood': ngood} 
 
 # ------------------------------------------------------------------------------------------------------------------------
 def HOG_PRSlite(angles, weights=None):
@@ -95,11 +96,11 @@ def HOG_PRSlite(angles, weights=None):
 
    #p0, Zx0=pycircstat.tests.vtest(angles, 0., w=weights)
    #print("Zx0", Zx0/np.sqrt(np.sum(weights)/2.)) # Too match the Jow et al. (2018) results
-   Zx=np.sum(weights*np.cos(angles))/np.sqrt(np.sum(weights**2)/2.)
+   Zx=np.sum(weights*np.cos(angles))/np.sqrt(np.sum(weights)/2.)
    temp=np.sum(np.cos(angles)*np.cos(angles))
    s_Zx=np.sqrt((2.*temp-Zx*Zx)/np.size(angles))
 
-   Zy=np.sum(weights*np.sin(angles))/np.sqrt(np.sum(weights**2)/2.)
+   Zy=np.sum(weights*np.sin(angles))/np.sqrt(np.sum(weights)/2.)
    temp=np.sum(np.sin(angles)*np.sin(angles))
    s_Zy=np.sqrt((2.*temp-Zy*Zy)/np.size(angles))
 
@@ -107,7 +108,10 @@ def HOG_PRSlite(angles, weights=None):
    s_Z=np.sqrt(s_Zx**2+s_Zy**2)
 
    meanphi=circmean(angles, low=-np.pi, high=np.pi)
+   #meanphi=np.arctan(Zy/Zx)
    stdphi=circstd(angles, low=-np.pi, high=np.pi)
+   varphi=1-mrv
+   #stdphi=np.sqrt(np.log(1/mrv**2))
 
    ngood=float(np.size(angles)) 
 

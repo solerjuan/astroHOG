@@ -316,21 +316,21 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
       phi[bad]=np.nan 
  
    # Excluding masked gradients
-   if (np.size((np.ravel(mask1) > 0.).nonzero()) > 1):
+   if (np.size((mask1.ravel() > 0.).nonzero()) > 1):
       m1bad=(mask1 < 1.).nonzero()
       phi[m1bad]=np.nan
    else:
       vprint("No unmasked elements in ima1")
       phi[:]=np.nan
  
-   if (np.size((np.ravel(mask2) > 0.).nonzero()) > 1):
+   if (np.size((mask2.ravel() > 0.).nonzero()) > 1):
       m2bad=(mask2 < 1.).nonzero()
       phi[m2bad]=np.nan
    else:
       vprint("No unmasked elements in ima2")
       phi[:]=np.nan
 
-   if (np.size((np.ravel(mask1*mask2) > 0.).nonzero()) < 1):
+   if (np.size((mask1.ravel()*mask2.ravel() > 0.).nonzero()) < 1):
       vprint("No unmasked elements in the joint mask")
       phi[:]=np.nan
 
@@ -455,6 +455,8 @@ def HOGcorr_imaANDcube(ima1, cube2, pxsz=1., ksz=1., res=1., mode='nearest', mas
    else:
       assert mask2.shape == cube2.shape, "Dimensions of mask2 and ima2 must match"
 
+   scube2=np.zeros_like(cube2) 
+
    #pxksz=(ksz/(2*np.sqrt(2.*np.log(2.))))/pxsz #gaussian_filter takes sigma instead of FWHM as input
    pxksz=ksz/pxsz
 
@@ -490,12 +492,12 @@ def HOGcorr_imaANDcube(ima1, cube2, pxsz=1., ksz=1., res=1., mode='nearest', mas
    for i in range(0,sz2[0]):
 
       circstats12, corrframe12, sima1, sima2 = HOGcorr_ima(ima1, ima1, s_ima1=s_ima1, pxsz=pxsz, ksz=ksz, res=res, nruns=0, mask1=mask1, mask2=imask2, gradthres1=gradthres1, gradthres2=gradthres1, weights=weights, verbose=verbose)
-      vecVmax[i]=circstats12['V'] 
+      vecVmax[i]=circstats12['V']
 
       # Calculate gradients of images in cube2
       ima2=cube2[i,:,:]
       imask2=mask2[i,:,:]
-      circstats12, corrframe12, sima1, sima2 = HOGcorr_ima(ima1, ima2, s_ima1=s_ima1, pxsz=pxsz, ksz=ksz, res=res, nruns=nruns, mask1=mask1, mask2=imask2, gradthres1=gradthres1, gradthres2=gradthres1, weights=weights, verbose=verbose)
+      circstats12, corrframe12, sima1, sima2 = HOGcorr_ima(ima1, ima2, s_ima1=s_ima1, pxsz=pxsz, ksz=ksz, res=res, nruns=0, mask1=mask1, mask2=imask2, gradthres1=gradthres1, gradthres2=gradthres1, weights=weights, verbose=verbose)
       corrframe[i,:,:]=corrframe12
       scube2[i,:,:]=sima2
       ngood=circstats12['ngood']
