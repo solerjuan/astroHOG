@@ -124,22 +124,28 @@ def astroHOGhp(map1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ordering1='r
    # Calculate relative orientation angles --------------------------------------------------------
    cosalpha=(dmap1dtheta*dmap2dtheta+dmap1dphi*dmap2dphi)/(normdmap1*normdmap2)
    sinalpha=(dmap1dtheta*dmap2dphi-dmap1dphi*dmap2dtheta)/(normdmap1*normdmap2)
-   #alpha=np.arctan(sinalpha/cosalpha) 
-   alpha=np.arctan2(sinalpha,cosalpha)
+   alphao=np.arctan(sinalpha/cosalpha) 
+   alphad=np.arctan2(sinalpha,cosalpha)
 
-   alpha[(mask1 < 1.).nonzero()]=np.nan
-   alpha[(mask2 < 1.).nonzero()]=np.nan
+   alphao[(mask1 < 1.).nonzero()]=np.nan; alphao[(mask2 < 1.).nonzero()]=np.nan
+   alphad[(mask1 < 1.).nonzero()]=np.nan; alphad[(mask2 < 1.).nonzero()]=np.nan
 
    index0=np.arange(0,np.size(inmap1),1)
    index1=np.arange(0,hp.nside2npix(nsideout),1)
 
-   output=HOG_PRS(alpha[np.isfinite(alpha).nonzero()])
-   Vall=output['Zx']   
+   output=HOG_PRS(2.*alphao[np.isfinite(alphao).nonzero()])
+   Voall=output['Zx']
+   output=HOG_PRS(alphad[np.isfinite(alphad).nonzero()])
+   Vdall=output['Zx']
 
    bookkeeping=np.zeros_like(inmap1)
    nangles=np.zeros(hp.nside2npix(nsideout))
-   Zmap=np.zeros(hp.nside2npix(nsideout))
-   Vmap=np.zeros(hp.nside2npix(nsideout))
+
+   Zomap=np.zeros(hp.nside2npix(nsideout))
+   Zdmap=np.zeros(hp.nside2npix(nsideout))
+
+   Vomap=np.zeros(hp.nside2npix(nsideout))
+   Vdmap=np.zeros(hp.nside2npix(nsideout))
 
    if (computeVmap):
    
@@ -148,33 +154,49 @@ def astroHOGhp(map1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ordering1='r
          glon, glat = hp.pix2ang(nsideout, i, lonlat=True)
          target_header['CRVAL1']=glon
          target_header['CRVAL2']=glat  
- 
-         col1=fits.Column(name='I_STOKES', format='E', array=alpha)
-         coldefs = fits.ColDefs([col1])
-         hdu=fits.BinTableHDU.from_columns(coldefs)
-         hdu.header['PIXTYPE']='HEALPIX'
-         hdu.header['ORDERING']='RING' 
-         hdu.header['COORDSYS']='G'
-         subalpha, footprint = reproject_from_healpix(hdu, target_header)
-         #hp.fitsfunc.write_map('dummy.fits', alpha, nest=False, coord='G', overwrite=True)
-         #subalpha, footprint = reproject_from_healpix('dummy.fits', target_header)
+         glonvec=(np.arange(target_header['NAXIS1'])-target_header['CRPIX1'])*target_header['CDELT1']+target_header['CRVAL1']
+         glatvec=(np.arange(target_header['NAXIS2'])-target_header['CRPIX2'])*target_header['CDELT2']+target_header['CRVAL2']
+         
+         poly=hp.pixelfunc.ang2vec(np.array([glonvec[0],glonvec[0],glonvec[-1],glonvec[-1]]), np.array([glatvec[0],glatvec[-1],glatvec[-1],glatvec[0]]), lonlat=True)
+         selpix=hp.query_polygon(hp.npix2nside(np.size(alphad)), poly)
 
-         tempalpha=np.arctan(np.tan(np.abs(subalpha)))
-         output=HOG_PRS(2.*tempalpha[np.isfinite(tempalpha).nonzero()])
-         nangles[i]=np.size(np.isfinite(tempalpha).nonzero())
-         Zmap[i]=output['Z']
-         Vmap[i]=output['Zx'] 
+         #col1=fits.Column(name='I_STOKES', format='E', array=alpha)
+         #coldefs = fits.ColDefs([col1])
+         #hdu=fits.BinTableHDU.from_columns(coldefs)
+         #hdu.header['PIXTYPE']='HEALPIX'
+         #hdu.header['ORDERING']='RING' 
+         #hdu.header['COORDSYS']='G'
+         #subalpha, footprint = reproject_from_healpix(hdu, target_header)
+
+         #tempalpha=np.arctan(np.tan(np.abs(subalpha)))
+ 
+         tempalphad=alphad[selpix]
+         output=HOG_PRS(tempalphad[np.isfinite(tempalphad).nonzero()])
+         nangles[i]=np.size(np.isfinite(tempalphad).nonzero())
+         Zdmap[i]=output['Z']
+         Vdmap[i]=output['Zx']
+
+         tempalphao=alphao[selpix]
+         output=HOG_PRS(2.*tempalphao[np.isfinite(tempalphao).nonzero()])
+         Zomap[i]=output['Z']
+         Vomap[i]=output['Zx'] 
 
    else:
       
       nangles[:]=0
-      Zmap[:]=np.nan
-      Vmap[:]=np.nan      
+      Zdmap[:]=np.nan
+      Vdmap[:]=np.nan      
+      Zomap[:]=np.nan
+      Vomap[:]=np.nan
 
    outmap1=smap1+np.nanmean(map1)  
    outmap2=smap2+np.nanmean(map2) 
 
-   circstats={'Z': Zmap, 'V': Vmap, 'normdmap1': normdmap1, 'normdmap2': normdmap2, 'smap1': outmap1, 'smap2': outmap2, 'nmap': nangles, 'Vall': Vall}   
+   circstats={'Vdall': Vdall, 'Voall': Voall, 'nmap': nangles,
+              'Zd': Zdmap, 'Vd': Vdmap,
+              'Zo': Zomap, 'Vo': Vomap,  
+              'normdmap1': normdmap1, 'normdmap2': normdmap2, 
+              'smap1': outmap1, 'smap2': outmap2}   
    return circstats 
 
 # -------------------------------------------------------------------------------------
@@ -264,6 +286,28 @@ def astroHOGhpPol(Imap, Qmap, Umap, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ord
    dUmapdphi=output['dphi']
    gradUmap=output['gradmap']
 
+   Pmap=np.sqrt(Qmap**2+Umap**2) 
+   # Calculating GradPsi ------------------------------------------
+   output=gradienthp(Qmap/Pmap, niter=niter, lmax=lmax)
+   dQoverPdtheta=output['dtheta']
+   dQoverPdphi=output['dphi']
+
+   output=gradienthp(Umap/Pmap, niter=niter, lmax=lmax)
+   dUoverPdtheta=output['dtheta']
+   dUoverPdphi=output['dphi']
+
+   dpsidtheta=np.sqrt(dQoverPdtheta**2+dUoverPdtheta**2)
+   dpsidphi=np.sqrt(dQoverPdphi**2+dUoverPdphi**2)
+   gradpsi=np.sqrt(dQoverPdtheta**2+dUoverPdtheta**2+dQoverPdphi**2+dUoverPdphi**2)
+
+   cosalpha=(dImapdphi*dpsidphi+dImapdtheta*dpsidtheta)/(gradImap*gradpsi)
+   sinalpha=(dImapdphi*dpsidtheta-dImapdtheta*dpsidphi)/(gradImap*gradpsi)
+   alphao=np.arctan(sinalpha/cosalpha)
+   alphad=np.arctan2(sinalpha,cosalpha)
+
+   alphao[(mask1 < 1.).nonzero()]=np.nan; alphao[(mask2 < 1.).nonzero()]=np.nan
+   alphad[(mask1 < 1.).nonzero()]=np.nan; alphad[(mask2 < 1.).nonzero()]=np.nan
+
    # Calculating GradPoverP ----------------------------------------
    Pmap=np.sqrt(Qmap**2+Umap**2)
    gradPmap=np.sqrt(dQmapdtheta**2+dQmapdphi**2+dUmapdtheta**2+dUmapdphi**2)
@@ -271,29 +315,31 @@ def astroHOGhpPol(Imap, Qmap, Umap, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ord
 
    dPoverPdtheta=np.sqrt(dQmapdtheta**2+dUmapdtheta**2)
    dPoverPdphi=np.sqrt(dQmapdphi**2+dUmapdphi**2)
-   #output=gradienthp(gradPoverPmap, niter=niter, lmax=lmax)
-   #dPoverPdphi=output['dtheta']
-   #dPoverPdtheta=-output['dphi']
-   #gradgradPoverPmap=np.sqrt(dPoverPdphi**2+dPoverPdtheta**2)
 
-   cosalpha=(dImapdphi*dPoverPdphi+dImapdtheta*dPoverPdtheta)/(gradImap*gradPoverPmap)
-   sinalpha=(dImapdphi*dPoverPdtheta-dImapdtheta*dPoverPdphi)/(gradImap*gradPoverPmap)
-   #alpha=np.arctan(sinalpha/cosalpha)
-   alpha=np.arctan2(sinalpha,cosalpha)
+   #cosalpha=(dImapdphi*dPoverPdphi+dImapdtheta*dPoverPdtheta)/(gradImap*gradPoverPmap)
+   #sinalpha=(dImapdphi*dPoverPdtheta-dImapdtheta*dPoverPdphi)/(gradImap*gradPoverPmap)
+   #alpha=np.arctan2(sinalpha,cosalpha)
 
-   alpha[(mask1 < 1.).nonzero()]=np.nan
-   alpha[(mask2 < 1.).nonzero()]=np.nan
+   # ---------------------------------------------------------------
+   alphao[(mask1 < 1.).nonzero()]=np.nan; alphao[(mask2 < 1.).nonzero()]=np.nan
+   alphad[(mask1 < 1.).nonzero()]=np.nan; alphad[(mask2 < 1.).nonzero()]=np.nan
 
-   output=HOG_PRS(alpha[np.isfinite(alpha).nonzero()])
-   Vall=output['Zx'] 
+   output=HOG_PRS(2.*alphao[np.isfinite(alphao).nonzero()])
+   Voall=output['Zx']
+   output=HOG_PRS(alphad[np.isfinite(alphad).nonzero()])
+   Vdall=output['Zx']
 
    index0=np.arange(0,np.size(Imap),1)
    index1=np.arange(0,hp.nside2npix(nsideout),1)
- 
+
    bookkeeping=np.zeros_like(Imap)
    nangles=np.zeros(hp.nside2npix(nsideout))
-   Zmap=np.zeros(hp.nside2npix(nsideout))
-   Vmap=np.zeros(hp.nside2npix(nsideout))
+
+   Zomap=np.zeros(hp.nside2npix(nsideout))
+   Zdmap=np.zeros(hp.nside2npix(nsideout))
+
+   Vomap=np.zeros(hp.nside2npix(nsideout))
+   Vdmap=np.zeros(hp.nside2npix(nsideout))
 
    if (computeVmap):
 
@@ -301,31 +347,47 @@ def astroHOGhpPol(Imap, Qmap, Umap, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ord
 
          glon, glat = hp.pix2ang(nsideout, i, lonlat=True)
          target_header['CRVAL1']=glon
-         target_header['CRVAL2']=glat 
+         target_header['CRVAL2']=glat
+         glonvec=(np.arange(target_header['NAXIS1'])-target_header['CRPIX1'])*target_header['CDELT1']+target_header['CRVAL1']
+         glatvec=(np.arange(target_header['NAXIS2'])-target_header['CRPIX2'])*target_header['CDELT2']+target_header['CRVAL2']
          
-         col1=fits.Column(name='I_STOKES', format='E', array=alpha)
-         coldefs = fits.ColDefs([col1])
-         hdu=fits.BinTableHDU.from_columns(coldefs)
-         hdu.header['PIXTYPE']='HEALPIX'
-         hdu.header['ORDERING']='RING'
-         hdu.header['COORDSYS']='G'    
-         subalpha, footprint = reproject_from_healpix(hdu, target_header)
- 
-         tempalpha=np.arctan(np.tan(np.abs(subalpha)))
-         output=HOG_PRS(2.*tempalpha[np.isfinite(tempalpha).nonzero()])
-         nangles[i]=np.size(np.isfinite(tempalpha).nonzero())
-         Zmap[i]=output['Z']
-         Vmap[i]=output['Zx'] 
+         poly=hp.pixelfunc.ang2vec(np.array([glonvec[0],glonvec[0],glonvec[-1],glonvec[-1]]), np.array([glatvec[0],glatvec[-1],glatvec[-1],glatvec[0]]), lonlat=True)
+         selpix=hp.query_polygon(hp.npix2nside(np.size(alphad)), poly)
+
+         #col1=fits.Column(name='I_STOKES', format='E', array=alpha)
+         #coldefs = fits.ColDefs([col1])
+         #hdu=fits.BinTableHDU.from_columns(coldefs)
+         #hdu.header['PIXTYPE']='HEALPIX'
+         #hdu.header['ORDERING']='RING' 
+         #hdu.header['COORDSYS']='G'
+         #subalpha, footprint = reproject_from_healpix(hdu, target_header)
+
+         tempalphad=alphad[selpix]
+         output=HOG_PRS(tempalphad[np.isfinite(tempalphad).nonzero()])
+         nangles[i]=np.size(np.isfinite(tempalphad).nonzero())
+         Zdmap[i]=output['Z']
+         Vdmap[i]=output['Zx']
+
+         tempalphao=alphao[selpix]
+         output=HOG_PRS(2.*tempalphao[np.isfinite(tempalphao).nonzero()])
+         Zomap[i]=output['Z']
+         Vomap[i]=output['Zx']
 
    else:
 
       nangles[:]=0
-      Zmap[:]=np.nan
-      Vmap[:]=np.nan
+      Zdmap[:]=np.nan
+      Vdmap[:]=np.nan
+      Zomap[:]=np.nan
+      Vomap[:]=np.nan         
  
    outmap1=sImap+np.nanmean(Imap)
 
-   circstats={'Z': Zmap, 'V': Vmap, 'smap1': outmap1, 'psimap': alpha, 'gradImap': gradImap, 'gradPoverPmap': gradPoverPmap, 'Vall': Vall}
+   circstats={'Vdall': Vdall, 'Voall': Voall, 'nmap': nangles,
+              'Zd': Zdmap, 'Vd': Vdmap,
+              'Zo': Zomap, 'Vo': Vomap,
+              'alphad': alphad, 'alphao': alphao, 
+              'smap1': outmap1, 'gradImap': gradImap, 'gradPoverPmap': gradPoverPmap, 'gradPsi': gradpsi}
 
    return circstats
 
