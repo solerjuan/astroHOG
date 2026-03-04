@@ -23,6 +23,9 @@ from statests import *
 
 from tqdm import tqdm
 
+sigma2fwhm=2.*np.sqrt(2.*np.log(2))
+fwhm2sigma=1./sigma2fwhm
+
 # --------------------------------------------------------------------------------------------------------------
 def vprint(obj, verbose=True):
    if verbose:
@@ -32,6 +35,15 @@ def vprint(obj, verbose=True):
 # ---------------------------------------------------------------------------------------------------------------
 def mse(x, y):
     return np.linalg.norm(x - y)
+
+# ---------------------------------------------------------------------------------------------------------------
+def HOGgradient(inmap, pxksz=3.0, mode='reflect'):
+
+   sima1=ndimage.filters.gaussian_filter(inmap, fwhm2sigma*pxksz*np.ones(2), order=[0,0], mode=mode)
+   dI1dx=ndimage.filters.gaussian_filter(inmap, fwhm2sigma*pxksz*np.ones(2), order=[0,1], mode=mode)
+   dI1dy=ndimage.filters.gaussian_filter(inmap, fwhm2sigma*pxksz*np.ones(2), order=[1,0], mode=mode)
+
+   return {'smap': sima1, 'dx': dI1dx, 'dy': dI1dy, 'gradnorm': np.sqrt(dI1dx**2+dI1dy**2)}
 
 # ---------------------------------------------------------------------------------------------------------------
 def imablockaverage(corrframe, nbx=7, nby=7, weight=1.):
@@ -291,18 +303,29 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
    else:
       assert mask2.shape == ima2.shape, "Dimensions of mask2 and ima2 must match"
 
-   pxksz=(ksz/(2*np.sqrt(2.*np.log(2.))))/pxsz #gaussian_filter takes sigma instead of FWHM as input
+   #pxksz=(ksz/(2*np.sqrt(2.*np.log(2.))))/pxsz #gaussian_filter takes sigma instead of FWHM as input
+   pxksz=ksz/pxsz
 
    # Calculate gradients
-   sima1=ndimage.filters.gaussian_filter(ima1, [pxksz, pxksz], order=[0,0], mode=mode)
-   sima2=ndimage.filters.gaussian_filter(ima2, [pxksz, pxksz], order=[0,0], mode=mode)
-   dI1dx=ndimage.filters.gaussian_filter(ima1, [pxksz, pxksz], order=[0,1], mode=mode)
-   dI1dy=ndimage.filters.gaussian_filter(ima1, [pxksz, pxksz], order=[1,0], mode=mode)
-   dI2dx=ndimage.filters.gaussian_filter(ima2, [pxksz, pxksz], order=[0,1], mode=mode)
-   dI2dy=ndimage.filters.gaussian_filter(ima2, [pxksz, pxksz], order=[1,0], mode=mode)
+   grad1=HOGgradient(ima1, pxksz=pxksz, mode=mode)
+   sima1=grad1['smap']
+   dI1dx=grad1['dx']
+   dI1dy=grad1['dy']
+   normdmap1=np.sqrt(dI1dx**2+dI1dy**2)
 
+   grad2=HOGgradient(ima2, pxksz=pxksz, mode=mode)
+   sima2=grad2['smap']
+   dI2dx=grad2['dx']
+   dI2dy=grad2['dy']
+   normdmap2=np.sqrt(dI2dx**2+dI2dy**2)
+ 
    # Calculation of the relative orientation angles
-   phi=np.arctan2(dI1dx*dI2dy-dI1dy*dI2dx, dI1dx*dI2dx+dI1dy*dI2dy)
+   cosphi=(dI1dx*dI2dx+dI1dy*dI2dy)/(normdmap1*normdmap2)
+   sinphi=(dI1dx*dI2dy-dI1dy*dI2dx)/(normdmap1*normdmap2)
+   phio=np.arctan(sinphi/cosphi)
+   phid=np.arctan2(sinphi,cosphi)
+
+   #phi=np.arctan2(dI1dx*dI2dy-dI1dy*dI2dx, dI1dx*dI2dx+dI1dy*dI2dy)
    #phi=np.arctan(np.tan(tempphi)) # Deprecated mapping to -90 to 90 range.
 
    # Excluding null gradients
@@ -310,31 +333,38 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
    normGrad2=np.sqrt(dI2dx**2+dI2dy**2)
    if np.logical_not(gradthres1 is None):
       bad=(normGrad1 <= gradthres1).nonzero()
-      phi[bad]=np.nan
+      phio[bad]=np.nan
+      phid[bad]=np.nan
    if np.logical_not(gradthres2 is None):
       bad=(normGrad2 <= gradthres2).nonzero()
-      phi[bad]=np.nan 
+      phio[bad]=np.nan
+      phid[bad]=np.nan
  
    # Excluding masked gradients
    if (np.size((np.ravel(mask1) > 0.).nonzero()) > 1):
       m1bad=(mask1 < 1.).nonzero()
-      phi[m1bad]=np.nan
+      phio[m1bad]=np.nan
+      phid[m1bad]=np.nan
    else:
       vprint("No unmasked elements in ima1")
-      phi[:]=np.nan
- 
+      phio[:]=np.nan
+      phid[:]=np.nan  
+
    if (np.size((np.ravel(mask2) > 0.).nonzero()) > 1):
       m2bad=(mask2 < 1.).nonzero()
-      phi[m2bad]=np.nan
+      phio[m2bad]=np.nan
+      phid[m2bad]=np.nan
    else:
       vprint("No unmasked elements in ima2")
-      phi[:]=np.nan
+      phio[:]=np.nan
+      phid[:]=np.nan
 
    if (np.size((np.ravel(mask1*mask2) > 0.).nonzero()) < 1):
       vprint("No unmasked elements in the joint mask")
-      phi[:]=np.nan
+      phio[:]=np.nan
+      phid[:]=np.nan 
 
-   good=np.isfinite(phi).nonzero()
+   good=np.isfinite(phio).nonzero()
    ngood=np.size(good)
 
    # Circular statistic outputs of orientation between image gradients
@@ -359,8 +389,8 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
    if (ngood >= 2):
 
       # Calculate orientation statistics between image gradients 
-      output=HOG_PRS(2.*phi[good], weights=weights[good])
-      outputMax=HOG_PRS(2.*np.zeros_like(phi[good]), weights=weights[good])
+      output=HOG_PRS(2.*phio[good], weights=weights[good])
+      outputMax=HOG_PRS(2.*np.zeros_like(phio[good]), weights=weights[good])
       rvl=output['mrv']
       Z=output['Z']
       V=output['Zx']
@@ -371,7 +401,7 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
       ngood=output['ngood'] 
   
       # Calculate direction statistics between image gradients 
-      output=HOG_PRS(phi[good], weights=weights[good])
+      output=HOG_PRS(phid[good], weights=weights[good])
       rvld=output['mrv']
       Zd=output['Z']
       Vd=output['Zx']
@@ -391,7 +421,7 @@ def HOGcorr_imaLITE(ima1, ima2, pxsz=1., ksz=1., res=1., mode='nearest', mask1=N
    circstats={'RVL': rvl, 'Z': Z, 'V': V, 'VoverVmax': VoverVmax, 'meanphi': meanphi, 
               'RVLd': rvld, 'Zd': Zd, 'Vd': Vd, 'meanphid': meanphid, 
 	      'pearsonr': pear, 'crosscor': ccor, 'ngood': ngood}
-   corrframe=phi
+   corrframe=phio
 
    return circstats, corrframe, sima1, sima2
 

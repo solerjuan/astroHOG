@@ -1,8 +1,13 @@
-import numpy as n
+#
+#
+#
+
+import numpy as np
 import scipy.interpolate
 import scipy.ndimage
 
-def congrid(a, newdims, method='linear', centre=False, minusone=False):
+def congrid(inmap, newdims, method='linear', centre=False, minusone=False):
+
     '''Arbitrary resampling of source array to new dimension sizes.
     Currently only supports maintaining the same number of dimensions.
     To use 1-D arrays, first promote them to shape (x,1).
@@ -28,42 +33,48 @@ def congrid(a, newdims, method='linear', centre=False, minusone=False):
     True - inarray is resampled by(i-1)/(x-1) * (j-1)/(y-1)
     This prevents extrapolation one element beyond bounds of input array.
     '''
-    if not a.dtype in [n.float64, n.float32]:
-        a = n.cast[float](a)
 
-    m1 = n.cast[int](minusone)
-    ofs = n.cast[int](centre) * 0.5
-    old = n.array( a.shape )
-    ndims = len( a.shape )
+    #if not a.dtype in [n.float64, n.float32]:
+        #a = n.cast[float](a)
+    amap = np.asarray(inmap, dtype=float, copy=True) 
+
+    #m1 = n.cast[int](minusone)
+    m1 = np.asarray(minusone, dtype=int)
+    #ofs = n.cast[int](centre) * 0.5
+    ofs=np.asarray(centre, dtype=int)*0.5
+    old=np.array(amap.shape)
+    ndims=len(amap.shape)
+
     if len( newdims ) != ndims:
         #print "[congrid] dimensions error. " \
         #      "This routine currently only support " \
         #      "rebinning to the same number of dimensions."
         return None
-    newdims = n.asarray( newdims, dtype=float )
+    newdims = np.asarray(newdims, dtype=float)
     dimlist = []
 
     if method == 'neighbour':
         for i in ange( ndims ):
-            base = n.indices(newdims)[i]
+            base = np.indices(newdims)[i]
             dimlist.append( (old[i] - m1) / (newdims[i] - m1) \
                             * (base + ofs) - ofs )
-        cd = n.array( dimlist ).round().astype(int)
-        newa = a[list( cd )]
+        cd = np.array( dimlist ).round().astype(int)
+        newa = amap[list(cd)]
         return newa
 
     elif method in ['nearest','linear']:
         # calculate new dims
         for i in range( ndims ):
-            base = n.arange( newdims[i] )
+            base = np.arange( newdims[i] )
             dimlist.append( (old[i] - m1) / (newdims[i] - m1) \
                             * (base + ofs) - ofs )
         # specify old dims
-        olddims = [n.arange(i, dtype = n.float) for i in list( a.shape )]
+        olddims=[np.arange(i, dtype=float) for i in list(amap.shape)]
 
         # first interpolation - for ndims = any
-        mint = scipy.interpolate.interp1d( olddims[-1], a, kind=method )
-        newa = mint( dimlist[-1] )
+        import pdb; pdb.set_trace()
+        mint=scipy.interpolate.interp1d(olddims[-1], amap, kind=method)
+        newa=mint(dimlist[-1])
 
         trorder = [ndims - 1] + list(range( ndims - 1 ))
         for i in range( ndims - 2, -1, -1 ):

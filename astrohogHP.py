@@ -25,6 +25,7 @@ from statests import *
 from reproject import reproject_from_healpix, reproject_to_healpix
 
 sigma2fwhm=2.*np.sqrt(2.*np.log(2.))
+fwhm2sigma=1/sigma2fwhm
 
 # -------------------------------------------------------------------------------------
 def gaussian(x, mu, sig, limg=1e-3):
@@ -35,18 +36,42 @@ def gaussian(x, mu, sig, limg=1e-3):
     return gfunc
 
 # -------------------------------------------------------------------------------------
-def gradienthp(hpmap, niter=3, lmax=None, nsideout=None):
+def gradienthp(hpmap, niter=3, ksz=None, w0=0., nsideout=None, ordering='ring'):
 
-   if (lmax is None):
-      lmax=2*np.npix2nside(np.size(hpmap))
+   """ Calculates the spatial correlation between im1 and im2 using the HOG method 
+
+   Parameters
+   ----------   
+    hpmap   : healpix map 
+    niter   : 
+    ksz     : Size of the derivative kernel in degrees
+    nsideout: nside of the output map
+ 
+   Returns
+   -------
+    circstats:  Statistics describing the correlation between the input images.
+
+   """
+
+   if (ksz is None):
+      ksz=2*np.rad2deg(hp.nside2resol(hp.npix2nside(np.size(hpmap))))
+
+   ksz1=np.sqrt(ksz**2-w0**2)
+
+   lmax=int(np.ceil(180/ksz))
 
    if (nsideout is None):
       nsideout=hp.npix2nside(np.size(hpmap))
-
-   inhpmap=hpmap.copy()-np.nanmean(hpmap)
+ 
+   if (ordering=='nested'):
+      inhpmap=hp.reorder(hpmap, n2r=True)-np.nanmean(hpmap)
+   else:
+      inhpmap=hpmap.copy()-np.nanmean(hpmap)
   
    #alm1=hp.sphtfunc.anafast(inmap1, iter=niter, alm=True, lmax=lmax, pol=False, use_weights=False, gal_cut=gal_cut, use_pixel_weights=False)
    #smap1, dmap1dtheta, dmap1dphi = hp.sphtfunc.alm2map_der1(alm1[1], hp.npix2nside(np.size(map1)), lmax=lmax, mmax=None)
+   
+   #alm=hp.sphtfunc.map2alm(inhpmap, iter=niter) 
    alm=hp.sphtfunc.map2alm(inhpmap, iter=niter, use_pixel_weights=True)
    clm=hp.sphtfunc.alm2cl(alm)
    ell=np.arange(np.size(clm))+1
@@ -65,21 +90,33 @@ def gradienthp(hpmap, niter=3, lmax=None, nsideout=None):
    return output
 
 # -------------------------------------------------------------------------------------
-def astroHOGhp(map1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ordering1='ring', ordering2='ring', mask1=None, mask2=None, computeVmap=True):
+def astroHOGhp(map1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ordering1='ring', ordering2='ring', mask1=None, mask2=None, computeVmap=True, weights=None, w1=0., w2=0.):
 
-   assert map1.shape==map2.shape, "Dimensions of map1 and map2 must match"
+   #assert map1.shape==map2.shape, "Dimensions of map1 and map2 must match"
   
+   nsidein1=hp.npix2nside(np.size(map1))
+   nsidein2=hp.npix2nside(np.size(map2)) 
+   nsidein=np.min([nsidein1,nsidein2])
+
    if (mask1 is None):
       mask1=np.ones_like(map1)
    if (mask2 is None):
       mask2=np.ones_like(map2)
 
+   if (nsidein1 > nsidein2):
+      mask1=hp.pixelfunc.ud_grade(mask1.copy(), nsidein)
+   if (nsidein1 < nsidein2):
+      mask2=hp.pixelfunc.ud_grade(mask2.copy(), nsidein)   
+ 
    # ---------------------------------------------
    lmax=int(180./ksz)
    lmax0=hp.npix2nside(np.size(map1))
   
    if (lmax > lmax0):
       lmax=lmax0
+
+   if (weights is None): 
+      weights=((hp.nside2resol(hp.npix2nside(np.size(map1)), arcmin=True)/60.)/ksz)**2
 
    # --------------------------------------------------------------
    resbase=hp.nside2resol(hp.npix2nside(np.size(map1)), arcmin=True)/60.0
@@ -108,14 +145,14 @@ def astroHOGhp(map1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ordering1='r
    inmap2=map2.copy()-np.nanmean(map2)
  
    # Gradient of map 1 ---------------------------------------------
-   output=gradienthp(map1, niter=niter, lmax=lmax)
+   output=gradienthp(map1, niter=niter, ksz=ksz, w0=w1, nsideout=nsidein, ordering=ordering1)
    smap1=output['smap']
    dmap1dtheta=output['dtheta']
    dmap1dphi=output['dphi']
    normdmap1=output['gradmap']
- 
+
    # Gradient of map 2 ------------------------------------------------------
-   output=gradienthp(map2, niter=niter, lmax=lmax)
+   output=gradienthp(map2, niter=niter, ksz=ksz, w0=w2, nsideout=nsidein, ordering=ordering2)
    smap2=output['smap']
    dmap2dtheta=output['dtheta']
    dmap2dphi=output['dphi']
@@ -127,16 +164,20 @@ def astroHOGhp(map1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ordering1='r
    alphao=np.arctan(sinalpha/cosalpha) 
    alphad=np.arctan2(sinalpha,cosalpha)
 
-   alphao[(mask1 < 1.).nonzero()]=np.nan; alphao[(mask2 < 1.).nonzero()]=np.nan
-   alphad[(mask1 < 1.).nonzero()]=np.nan; alphad[(mask2 < 1.).nonzero()]=np.nan
+   alphao[(mask1 < 1.).nonzero()]=np.nan; 
+   alphao[(mask2 < 1.).nonzero()]=np.nan
+   alphad[(mask1 < 1.).nonzero()]=np.nan; 
+   alphad[(mask2 < 1.).nonzero()]=np.nan
 
    index0=np.arange(0,np.size(inmap1),1)
    index1=np.arange(0,hp.nside2npix(nsideout),1)
 
-   output=HOG_PRS(2.*alphao[np.isfinite(alphao).nonzero()])
+   output=HOG_PRS(2.*alphao[np.isfinite(alphao).nonzero()], weights=weights)
    Voall=output['Zx']
-   output=HOG_PRS(alphad[np.isfinite(alphad).nonzero()])
+   output=HOG_PRS(alphad[np.isfinite(alphad).nonzero()], weights=weights)
    Vdall=output['Zx']
+   
+   # Prepare outputs 
 
    bookkeeping=np.zeros_like(inmap1)
    nangles=np.zeros(hp.nside2npix(nsideout))
@@ -147,18 +188,43 @@ def astroHOGhp(map1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ordering1='r
    Vomap=np.zeros(hp.nside2npix(nsideout))
    Vdmap=np.zeros(hp.nside2npix(nsideout))
 
+   VoMAXmap=np.zeros(hp.nside2npix(nsideout))
+   VdMAXmap=np.zeros(hp.nside2npix(nsideout))
+
+   meanmap1=np.zeros(hp.nside2npix(nsideout))
+   meanmap2=np.zeros(hp.nside2npix(nsideout))
+   stdmap1=np.zeros(hp.nside2npix(nsideout))
+   stdmap2=np.zeros(hp.nside2npix(nsideout))
+
+   # ------------------------------------------------------------------------------------------------
    if (computeVmap):
    
-      for i in tqdm(index1):
+      for i in index1:
+      #for i in tqdm(index1):
  
-         glon, glat = hp.pix2ang(nsideout, i, lonlat=True)
-         target_header['CRVAL1']=glon
-         target_header['CRVAL2']=glat  
-         glonvec=(np.arange(target_header['NAXIS1'])-target_header['CRPIX1'])*target_header['CDELT1']+target_header['CRVAL1']
-         glatvec=(np.arange(target_header['NAXIS2'])-target_header['CRPIX2'])*target_header['CDELT2']+target_header['CRVAL2']
-         
-         poly=hp.pixelfunc.ang2vec(np.array([glonvec[0],glonvec[0],glonvec[-1],glonvec[-1]]), np.array([glatvec[0],glatvec[-1],glatvec[-1],glatvec[0]]), lonlat=True)
-         selpix=hp.query_polygon(hp.npix2nside(np.size(alphad)), poly)
+         dummy=np.zeros(hp.nside2npix(nsideout))
+
+         # ---------------------------------
+         #glon, glat = hp.pix2ang(nsideout, i, lonlat=True)
+         #target_header['CRVAL1']=glon
+         #target_header['CRVAL2']=glat
+         #glonvec=(np.arange(target_header['NAXIS1'])-target_header['CRPIX1'])*target_header['CDELT1']+target_header['CRVAL1']
+         #glatvec=(np.arange(target_header['NAXIS2'])-target_header['CRPIX2'])*target_header['CDELT2']+target_header['CRVAL2']         
+         #poly=hp.pixelfunc.ang2vec(np.array([glonvec[0],glonvec[0],glonvec[-1],glonvec[-1]]), np.array([glatvec[0],glatvec[-1],glatvec[-1],glatvec[0]]), lonlat=True)
+         #selpix=hp.query_polygon(hp.npix2nside(np.size(alphad)), poly)
+
+         # ----------------------------------
+         selpix=hp.query_disc(nsidein, hp.pixelfunc.pix2vec(nsideout,i), 0.5*hp.nside2resol(nsideout))       
+
+         meanmap1[i]=np.nanmean(map1[selpix])
+         meanmap2[i]=np.nanmean(map2[selpix])
+         stdmap1[i]=np.nanstd(map1[selpix])
+         stdmap2[i]=np.nanstd(map2[selpix])
+
+         # ----------------------------------
+         #dummy[i]=1.0
+         #udummy=hp.ud_grade(dummy, nsidein)         
+         #selpix=(udummy > 0.).nonzero()
 
          #col1=fits.Column(name='I_STOKES', format='E', array=alpha)
          #coldefs = fits.ColDefs([col1])
@@ -169,9 +235,11 @@ def astroHOGhp(map1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ordering1='r
          #subalpha, footprint = reproject_from_healpix(hdu, target_header)
 
          #tempalpha=np.arctan(np.tan(np.abs(subalpha)))
- 
+
          tempalphad=alphad[selpix]
-         output=HOG_PRS(tempalphad[np.isfinite(tempalphad).nonzero()])
+         output=HOG_PRS(0.*tempalphad[np.isfinite(tempalphad).nonzero()], weights=weights)
+         VdMAXmap[i]=output['Zx']
+         output=HOG_PRS(tempalphad[np.isfinite(tempalphad).nonzero()], weights=weights)
          nangles[i]=np.size(np.isfinite(tempalphad).nonzero())
          Zdmap[i]=output['Z']
          Vdmap[i]=output['Zx']
@@ -180,6 +248,8 @@ def astroHOGhp(map1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ordering1='r
          output=HOG_PRS(2.*tempalphao[np.isfinite(tempalphao).nonzero()])
          Zomap[i]=output['Z']
          Vomap[i]=output['Zx'] 
+         output=HOG_PRS(np.zeros(np.size(tempalphad)), weights=weights)
+         VoMAXmap[i]=output['Zx'] 
 
    else:
       
@@ -193,8 +263,11 @@ def astroHOGhp(map1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ordering1='r
    outmap2=smap2+np.nanmean(map2) 
 
    circstats={'Vdall': Vdall, 'Voall': Voall, 'nmap': nangles,
-              'Zd': Zdmap, 'Vd': Vdmap,
-              'Zo': Zomap, 'Vo': Vomap,  
+              'Zd': Zdmap, 'Vd': Vdmap, 'VdMAX': VdMAXmap,
+              'Zo': Zomap, 'Vo': Vomap, 'VoMAX': VoMAXmap,
+              'alphad': alphad, 'alphao': alphao, 
+              'meanmap1': meanmap1, 'meanmap2': meanmap2,
+              'stdmap1': stdmap1, 'stdmap2': stdmap2,
               'normdmap1': normdmap1, 'normdmap2': normdmap2, 
               'smap1': outmap1, 'smap2': outmap2}   
    return circstats 
@@ -213,10 +286,11 @@ def astroHOGhpSamples(samples1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, o
       import pdb; pdb.set_trace()
       vecVall[i]=output['Vall']
       matVmap[i,:]=output['V']
-
+  
    circstats={'V': matVmap, 'Vall': vecVall}
 
    return circstats
+
 
 # -------------------------------------------------------------------------------------
 def astroHOGhpPol(Imap, Qmap, Umap, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ordering1='ring', ordering2='ring', mask1=None, mask2=None, computeVmap=True):
