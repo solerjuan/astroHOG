@@ -92,6 +92,8 @@ def HOG_PRSlite(angles, weights=None):
       weivec=np.ones_like(angles)
    elif(np.size(weights)==1):
       weivec=weights*np.ones_like(angles)
+   elif(np.size(angles)==np.size(weights)):
+      weivec=weights.copy()
    else:
       diff=np.abs(np.size(angles)-np.size(weights))   
       if (diff > 0.):
