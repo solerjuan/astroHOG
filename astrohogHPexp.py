@@ -187,38 +187,57 @@ def astroHOGhplite(map1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ordering
 
    bookkeeping=np.zeros_like(alphad)
 
-   # -----------------------------------------------------------------
-   nangles=np.zeros(hp.nside2npix(nsidein))
-   Zomap=np.zeros(hp.nside2npix(nsidein))
-   Zdmap=np.zeros(hp.nside2npix(nsidein))
+   nangles=np.zeros(hp.nside2npix(nsideout))
+   Zomap=np.zeros(hp.nside2npix(nsideout))
+   Zdmap=np.zeros(hp.nside2npix(nsideout))
 
-   Vomap=np.zeros(hp.nside2npix(nsidein))
-   Vdmap=np.zeros(hp.nside2npix(nsidein))
+   Vomap=np.zeros(hp.nside2npix(nsideout))
+   Vdmap=np.zeros(hp.nside2npix(nsideout))
 
-   VoMAXmap=np.zeros(hp.nside2npix(nsidein))
-   VdMAXmap=np.zeros(hp.nside2npix(nsidein))
+   VoMAXmap=np.zeros(hp.nside2npix(nsideout))
+   VdMAXmap=np.zeros(hp.nside2npix(nsideout))
 
-   meanmap1=np.zeros(hp.nside2npix(nsidein))
-   meanmap2=np.zeros(hp.nside2npix(nsidein))
-   stdmap1=np.zeros(hp.nside2npix(nsidein))
-   stdmap2=np.zeros(hp.nside2npix(nsidein))
+   meanmap1=np.zeros(hp.nside2npix(nsideout))
+   meanmap2=np.zeros(hp.nside2npix(nsideout))
+   stdmap1=np.zeros(hp.nside2npix(nsideout))
+   stdmap2=np.zeros(hp.nside2npix(nsideout))
 
-   for i in tqdm(index0):
+   for i in index1:
+      
       dummy=np.zeros(hp.nside2npix(nsideout))
 
-      selpix2=hp.query_disc(hp.npix2nside(np.size(map2)), hp.pixelfunc.pix2vec(nsidein,i), 0.5*hp.nside2resol(nsideout))
-      meanmap2[i]=np.nanmean(map2[selpix2])
-      stdmap2[i]=np.nanstd(map2[selpix2])
+      # ---------------------------------
+      #glon, glat = hp.pix2ang(nsideout, i, lonlat=True)
+      #target_header['CRVAL1']=glon
+      #target_header['CRVAL2']=glat
+      #glonvec=(np.arange(target_header['NAXIS1'])-target_header['CRPIX1'])*target_header['CDELT1']+target_header['CRVAL1']
+      #glatvec=(np.arange(target_header['NAXIS2'])-target_header['CRPIX2'])*target_header['CDELT2']+target_header['CRVAL2']         
+      #poly=hp.pixelfunc.ang2vec(np.array([glonvec[0],glonvec[0],glonvec[-1],glonvec[-1]]), np.array([glatvec[0],glatvec[-1],glatvec[-1],glatvec[0]]), lonlat=True)
+      #selpix=hp.query_polygon(hp.npix2nside(np.size(alphad)), poly)
 
-      selpix=hp.query_disc(hp.npix2nside(np.size(map1)), hp.pixelfunc.pix2vec(nsidein,i), 0.5*hp.nside2resol(nsideout))
-      l0, b0 = hp.vec2ang(np.array(hp.pixelfunc.pix2vec(nsidein,i)), lonlat=True)
+      # ----------------------------------
+      selpix=hp.query_disc(nsidein, hp.pixelfunc.pix2vec(nsideout,i), 0.5*hp.nside2resol(nsideout))
+
       meanmap1[i]=np.nanmean(map1[selpix])
+      meanmap2[i]=np.nanmean(map2[selpix])
       stdmap1[i]=np.nanstd(map1[selpix])
-     
-      #dummy[selpix]=1.0
-      #hp.orthview(dummy, rot=[l0[0],b0[0]])
-      #plt.show()
+      stdmap2[i]=np.nanstd(map2[selpix])
 
+      # ----------------------------------
+      #dummy[i]=1.0
+      #udummy=hp.ud_grade(dummy, nsidein)         
+      #selpix=(udummy > 0.).nonzero()
+
+      #col1=fits.Column(name='I_STOKES', format='E', array=alpha)
+      #coldefs = fits.ColDefs([col1])
+      #hdu=fits.BinTableHDU.from_columns(coldefs)
+      #hdu.header['PIXTYPE']='HEALPIX'
+      #hdu.header['ORDERING']='RING' 
+      #hdu.header['COORDSYS']='G'
+      #subalpha, footprint = reproject_from_healpix(hdu, target_header)
+
+      #tempalpha=np.arctan(np.tan(np.abs(subalpha)))
+ 
       # ------------------------------------------------------
       tempalphad=alphad[selpix]
       output=HOG_PRS(0.*tempalphad[np.isfinite(tempalphad).nonzero()], weights=weights)
@@ -235,47 +254,8 @@ def astroHOGhplite(map1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ordering
       output=HOG_PRS(np.zeros(np.size(tempalphad)), weights=weights)
       VoMAXmap[i]=output['Zx']
 
-   # -----------------------------------------------------------------
-   #nangles=np.zeros(hp.nside2npix(nsideout))
-   #Zomap=np.zeros(hp.nside2npix(nsideout))
-   #Zdmap=np.zeros(hp.nside2npix(nsideout))
-
-   #Vomap=np.zeros(hp.nside2npix(nsideout))
-   #Vdmap=np.zeros(hp.nside2npix(nsideout))
-
-   #VoMAXmap=np.zeros(hp.nside2npix(nsideout))
-   #VdMAXmap=np.zeros(hp.nside2npix(nsideout))
-
-   #meanmap1=np.zeros(hp.nside2npix(nsideout))
-   #meanmap2=np.zeros(hp.nside2npix(nsideout))
-   #stdmap1=np.zeros(hp.nside2npix(nsideout))
-   #stdmap2=np.zeros(hp.nside2npix(nsideout))
-
-   #for i in index1:
-      
-      #dummy=np.zeros(hp.nside2npix(nsideout))
-
-      #selpix=hp.query_disc(nsidein, hp.pixelfunc.pix2vec(nsideout,i), 0.5*hp.nside2resol(nsideout))
-
-      #meanmap1[i]=np.nanmean(map1[selpix])
-      #meanmap2[i]=np.nanmean(map2[selpix])
-      #stdmap1[i]=np.nanstd(map1[selpix])
-      #stdmap2[i]=np.nanstd(map2[selpix])
-
-      #tempalphad=alphad[selpix]
-      #output=HOG_PRS(0.*tempalphad[np.isfinite(tempalphad).nonzero()], weights=weights)
-      #VdMAXmap[i]=output['Zx']
-      #output=HOG_PRS(tempalphad[np.isfinite(tempalphad).nonzero()], weights=weights)
-      #nangles[i]=np.size(np.isfinite(tempalphad).nonzero())
-      #Zdmap[i]=output['Z']
-      #Vdmap[i]=output['Zx']
-
-      #tempalphao=alphao[selpix]
-      #output=HOG_PRS(2.*tempalphao[np.isfinite(tempalphao).nonzero()])
-      #Zomap[i]=output['Z']
-      #Vomap[i]=output['Zx']
-      #output=HOG_PRS(np.zeros(np.size(tempalphad)), weights=weights)
-      #VoMAXmap[i]=output['Zx']
+   #outmap1=smap1+np.nanmean(map1)
+   #outmap2=smap2+np.nanmean(map2)
 
    circstats={'Vdall': Vdall, 'Voall': Voall, 'nmap': nangles,
               'Vd': Vdmap, 'VdMAX': VdMAXmap,
@@ -328,17 +308,17 @@ def astroHOGhp(map1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ordering1='r
  
       Voallvec=np.zeros(nruns)
       Vdallvec=np.zeros(nruns)
-      Vomapvec=np.zeros([nruns,hp.nside2npix(nsidein)])
-      Vdmapvec=np.zeros([nruns,hp.nside2npix(nsidein)])
-      VoMAXmapvec=np.zeros([nruns,hp.nside2npix(nsidein)])
-      VdMAXmapvec=np.zeros([nruns,hp.nside2npix(nsidein)])
-      meanmap1vec=np.zeros([nruns,hp.nside2npix(nsidein)])
-      meanmap2vec=np.zeros([nruns,hp.nside2npix(nsidein)])
-      stdmap1vec=np.zeros([nruns,hp.nside2npix(nsidein)])
-      stdmap2vec=np.zeros([nruns,hp.nside2npix(nsidein)])
+      Vomapvec=np.zeros([nruns,hp.nside2npix(nsideout)])
+      Vdmapvec=np.zeros([nruns,hp.nside2npix(nsideout)])
+      VoMAXmapvec=np.zeros([nruns,hp.nside2npix(nsideout)])
+      VdMAXmapvec=np.zeros([nruns,hp.nside2npix(nsideout)])
+      meanmap1vec=np.zeros([nruns,hp.nside2npix(nsideout)])
+      meanmap2vec=np.zeros([nruns,hp.nside2npix(nsideout)])
+      stdmap1vec=np.zeros([nruns,hp.nside2npix(nsideout)])
+      stdmap2vec=np.zeros([nruns,hp.nside2npix(nsideout)])
       gradmap1vec=np.zeros([nruns,hp.nside2npix(nsidein)])
       gradmap2vec=np.zeros([nruns,hp.nside2npix(nsidein)])
-      nanglesvec=np.zeros([nruns,hp.nside2npix(nsidein)])
+      nanglesvec=np.zeros([nruns,hp.nside2npix(nsideout)])
       alphaovec=np.zeros([nruns,hp.nside2npix(nsidein)])
       alphadvec=np.zeros([nruns,hp.nside2npix(nsidein)])
  
@@ -438,17 +418,17 @@ def astroHOGhpSamples(samples1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, o
 
    Voallvec=np.zeros(nsamples)
    Vdallvec=np.zeros(nsamples)
-   Vomapvec=np.zeros([nsamples,hp.nside2npix(nsidein)])
-   Vdmapvec=np.zeros([nsamples,hp.nside2npix(nsidein)])
-   VoMAXmapvec=np.zeros([nsamples,hp.nside2npix(nsidein)])
-   VdMAXmapvec=np.zeros([nsamples,hp.nside2npix(nsidein)])
-   meanmap1vec=np.zeros([nsamples,hp.nside2npix(nsidein)])
-   meanmap2vec=np.zeros([nsamples,hp.nside2npix(nsidein)])
-   stdmap1vec =np.zeros([nsamples,hp.nside2npix(nsidein)])
-   stdmap2vec =np.zeros([nsamples,hp.nside2npix(nsidein)])
-   nanglesvec =np.zeros([nsamples,hp.nside2npix(nsidein)])
-   alphaovec  =np.zeros([nsamples,hp.nside2npix(nsidein)])
-   alphadvec  =np.zeros([nsamples,hp.nside2npix(nsidein)])
+   Vomapvec=np.zeros([nsamples,hp.nside2npix(nsideout)])
+   Vdmapvec=np.zeros([nsamples,hp.nside2npix(nsideout)])
+   VoMAXmapvec=np.zeros([nsamples,hp.nside2npix(nsideout)])
+   VdMAXmapvec=np.zeros([nsamples,hp.nside2npix(nsideout)])
+   meanmap1vec=np.zeros([nsamples,hp.nside2npix(nsideout)])
+   meanmap2vec=np.zeros([nsamples,hp.nside2npix(nsideout)])
+   stdmap1vec=np.zeros([nsamples,hp.nside2npix(nsideout)])
+   stdmap2vec=np.zeros([nsamples,hp.nside2npix(nsideout)])
+   nanglesvec=np.zeros([nsamples,hp.nside2npix(nsideout)])
+   alphaovec=np.zeros([nsamples,hp.nside2npix(nsidein)])
+   alphadvec=np.zeros([nsamples,hp.nside2npix(nsidein)])
 
    for i in range(0,nsamples):
 
@@ -456,7 +436,6 @@ def astroHOGhpSamples(samples1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, o
 
       Voallvec[i]=output['Voall']
       Vdallvec[i]=output['Vdall']
-
       Vomapvec[i,:]=output['Vo']
       Vdmapvec[i,:]=output['Vd']
       VoMAXmapvec[i,:]=output['VoMAX']
