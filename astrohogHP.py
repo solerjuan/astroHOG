@@ -120,7 +120,7 @@ def gradienthp(hpmap, niter=3, ksz=None, w0=0., nsideout=None, ordering='ring'):
    return output
 
 # -------------------------------------------------------------------------------------
-def astroHOGhpStride(map1, map2, niter=3, ksz=3.0, gal_cut=0, vsize=np.rad2deg(hp.nside2resol(8)), ordering1='ring', ordering2='ring', mask1=None, mask2=None, computeVmap=True, weights=None, w1=0., w2=0., s_map1=None, s_map2=None):
+def astroHOGhpStrideLite(map1, map2, niter=3, ksz=3.0, gal_cut=0, vsize=np.rad2deg(hp.nside2resol(8)), ordering1='ring', ordering2='ring', mask1=None, mask2=None, computeVmap=True, weights=None, w1=0., w2=0., s_map1=None, s_map2=None):
 
    nsidein1=hp.npix2nside(np.size(map1))
    nsidein2=hp.npix2nside(np.size(map2))
@@ -480,7 +480,7 @@ def astroHOGhp(map1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ordering1='r
 
    else:
    
-      output=astroHOGhplite(map1, map2, niter=niter, ksz=ksz, nsideout=nsideout, ordering1=ordering1, ordering2=ordering2, mask1=mask1, mask2=mask2, computeVmap=computeVmap, weights=weights, w1=w1, w2=w2, s_map1=s_map1, s_map2=s_map2)   
+      output=astroHOGhplite(map1, map2, ksz=ksz, nsideout=nsideout, ordering1=ordering1, ordering2=ordering2, mask1=mask1, mask2=mask2, computeVmap=computeVmap, weights=weights, w1=w1, w2=w2, s_map1=s_map1, s_map2=s_map2)   
 
       Voall=output['Voall']
       Vdall=output['Vdall'] 
@@ -508,6 +508,130 @@ def astroHOGhp(map1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ordering1='r
               'gradmap1': gradmap1, 'gradmap2': gradmap2}   
  
    return circstats 
+
+# -------------------------------------------------------------------------------------
+
+def astroHOGhpStride(map1, map2, niter=3, ksz=3.0, gal_cut=0, vsize=np.rad2deg(hp.nside2resol(8)), ordering1='ring', ordering2='ring', mask1=None, mask2=None, computeVmap=True, weights=None, w1=0., w2=0., s_map1=None, s_map2=None, nruns=1):
+
+   nsidein1=hp.npix2nside(np.size(map1))
+   nsidein2=hp.npix2nside(np.size(map2))
+   nsidein=np.min([nsidein1,nsidein2])
+   nsideout=nsidein
+  
+   Voall=np.nan; s_Voall=np.nan
+   Vdall=np.nan; s_Vdall=np.nan
+   Vomap=np.nan; s_Vomap=np.nan
+   Vdmap=np.nan; s_Vdmap=np.nan
+   VoMAXmap=np.nan; s_VoMAXmap=np.nan
+   VdMAXmap=np.nan; s_VdMAXmap=np.nan
+   alphao=np.nan; alphad=np.nan
+   meanmap1=np.nan; s_meanmap1=np.nan
+   meanmap2=np.nan; s_meanmap2=np.nan
+   nangles=np.nan
+
+   # ==========================================================================
+   if (nruns > 1):
+
+      Voallvec=np.zeros(nruns)
+      Vdallvec=np.zeros(nruns)
+      Vomapvec=np.zeros([nruns,hp.nside2npix(nsideout)])
+      Vdmapvec=np.zeros([nruns,hp.nside2npix(nsideout)])
+      VoMAXmapvec=np.zeros([nruns,hp.nside2npix(nsideout)])
+      VdMAXmapvec=np.zeros([nruns,hp.nside2npix(nsideout)])
+      meanmap1vec=np.zeros([nruns,hp.nside2npix(nsideout)])
+      meanmap2vec=np.zeros([nruns,hp.nside2npix(nsideout)])
+      stdmap1vec=np.zeros([nruns,hp.nside2npix(nsideout)])
+      stdmap2vec=np.zeros([nruns,hp.nside2npix(nsideout)])
+      nanglesvec=np.zeros([nruns,hp.nside2npix(nsideout)])
+
+      gradmap1vec=np.zeros([nruns,hp.nside2npix(nsidein)])
+      gradmap2vec=np.zeros([nruns,hp.nside2npix(nsidein)])
+      alphaovec=np.zeros([nruns,hp.nside2npix(nsidein)])
+      alphadvec=np.zeros([nruns,hp.nside2npix(nsidein)])
+
+      print(" astroHOGhp: Monte Carlo realizations")
+      for i in tqdm(range(0,nruns)):
+
+         rmap2=np.random.normal(loc=map2, scale=s_map2)
+
+         output=astroHOGhpStrideLite(map1, rmap2, ksz=ksz, vsize=np.rad2deg(hp.nside2resol(8)), ordering1=ordering1, ordering2=ordering2, mask1=mask1, mask2=mask2, computeVmap=computeVmap, weights=weights, w1=w1, w2=w2, s_map1=s_map1, s_map2=s_map2)
+  
+         Voallvec[i]=output['Voall']
+         Vdallvec[i]=output['Vdall']
+
+         Vomapvec[i,:]=output['Vo']
+         Vdmapvec[i,:]=output['Vd']
+         VoMAXmapvec[i,:]=output['VoMAX']
+         VdMAXmapvec[i,:]=output['VdMAX']
+         meanmap1vec[i,:]=output['meanmap1']
+         meanmap2vec[i,:]=output['meanmap2']
+         stdmap1vec[i,:]=output['stdmap1']
+         stdmap2vec[i,:]=output['stdmap2']
+
+         gradmap1vec[i,:]=output['gradmap1']
+         gradmap2vec[i,:]=output['gradmap2']
+         nanglesvec[i,:]=output['nmap']
+         alphaovec[i,:]=output['alphao']
+         alphadvec[i,:]=output['alphad']
+ 
+      Voall=np.mean(Voallvec)
+      s_Voall=np.std(Voallvec)
+      Vdall=np.mean(Vdallvec)
+      s_Vdall=np.std(Vdallvec)
+ 
+      Vomap=np.mean(Vomapvec, axis=0)
+      s_Vomap=np.std(Vomapvec, axis=0)
+      Vdmap=np.mean(Vdmapvec, axis=0)
+      s_Vdmap=np.std(Vdmapvec, axis=0)
+      VoMAXmap=np.mean(VoMAXmapvec, axis=0)
+      s_VoMAXmap=np.std(VoMAXmapvec, axis=0)
+      VdMAXmap=np.mean(VdMAXmapvec, axis=0)
+      s_VdMAXmap=np.std(VdMAXmapvec, axis=0)
+
+      meanmap1=np.mean(meanmap1vec, axis=0)
+      s_meanmap1=np.std(meanmap1vec, axis=0)
+      stdmap1=np.mean(stdmap1vec, axis=0)
+      meanmap2=np.mean(meanmap2vec, axis=0)
+      s_meanmap2=np.std(meanmap2vec, axis=0)
+      stdmap2=np.mean(stdmap2vec, axis=0)
+      nangles=np.mean(nanglesvec, axis=0)
+ 
+      gradmap1=np.mean(gradmap1vec, axis=0)
+      gradmap2=np.mean(gradmap2vec, axis=0)
+
+      alphao=circular_mean(alphaovec, axis=0)
+      alphad=circular_mean(alphadvec, axis=0)
+
+   else:
+
+      output=astroHOGhpStrideLite(map1, map2, ksz=ksz, vsize=np.rad2deg(hp.nside2resol(8)), ordering1=ordering1, ordering2=ordering2, mask1=mask1, mask2=mask2, computeVmap=computeVmap, weights=weights, w1=w1, w2=w2, s_map1=s_map1, s_map2=s_map2)
+
+      Voall=output['Voall']
+      Vdall=output['Vdall']
+      Vomap=output['Vo']
+      Vdmap=output['Vd']
+      alphao=output['alphao']
+      alphad=output['alphad']
+      VoMAXmap=output['VoMAX']
+      VdMAXmap=output['VdMAX']
+      meanmap1=output['meanmap1']; meanmap2=output['meanmap2']
+      stdmap1=output['stdmap1']; stdmap2=output['stdmap2']
+      gradmap1=output['gradmap1']; gradmap2=output['gradmap2']
+      nangles=output['nmap']
+      alphao=output['alphao']
+      alphad=output['alphad']
+
+   circstats={'Vdall': Vdall, 'Voall': Voall,
+              's_Vdall': s_Vdall, 's_Voall': s_Voall,
+              'nmap': nangles,
+              'Vd': Vdmap, 's_Vd': s_Vdmap,'VdMAX': VdMAXmap,
+              'Vo': Vomap, 's_Vo': s_Vomap, 'VoMAX': VoMAXmap,
+              'alphad': alphad, 'alphao': alphao,
+              'meanmap1': meanmap1, 'meanmap2': meanmap2,
+              'stdmap1': stdmap1, 'stdmap2': stdmap2,
+              'gradmap1': gradmap1, 'gradmap2': gradmap2}
+
+   return circstats
 
 # -------------------------------------------------------------------------------------
 def astroHOGhpSamples(samples1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ordering1='ring', ordering2='ring', mask1=None, mask2=None, computeVmap=True, weights=None, w1=0., w2=0., s_map1=None, s_map2=None, nruns=1):
