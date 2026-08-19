@@ -354,12 +354,13 @@ def astroHOGhplite(map1, map2, niter=3, ksz=3.0, gal_cut=0, nsideout=8, ordering
       
       dummy=np.zeros(hp.nside2npix(nsideout))
 
-      selpix=hp.query_disc(nsidein, hp.pixelfunc.pix2vec(nsideout,i), 0.5*hp.nside2resol(nsideout))
+      selpix2=hp.query_disc(nsidein2, hp.pixelfunc.pix2vec(nsideout,i), 0.5*hp.nside2resol(nsideout))
+      meanmap2[i]=np.nanmean(map2[selpix2])
+      stdmap2[i]=np.nanstd(map2[selpix2])
 
+      selpix=hp.query_disc(nsidein, hp.pixelfunc.pix2vec(nsideout,i), 0.5*hp.nside2resol(nsideout))    
       meanmap1[i]=np.nanmean(map1[selpix])
-      meanmap2[i]=np.nanmean(map2[selpix])
       stdmap1[i]=np.nanstd(map1[selpix])
-      stdmap2[i]=np.nanstd(map2[selpix])
 
       tempalphad=alphad[selpix]
       output=HOG_PRS(0.*tempalphad[np.isfinite(tempalphad).nonzero()], weights=weights)
